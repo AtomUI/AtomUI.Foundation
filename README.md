@@ -19,19 +19,19 @@ The first release focuses on modularity:
 
 | Package | Description |
 |---|---|
-| `AtomUI.Foundation` | Runtime infrastructure package for shared AtomUI foundation APIs. |
-| `AtomUI.Foundation.Generator` | Analyzer/source-generator package for generated AtomUI infrastructure. |
+| `AtomUI.Foundation` | Core runtime infrastructure for AtomUI. |
+| `AtomUI.Foundation.Generator` | Roslyn source generators for AtomUI.Foundation. |
 
-Current prerelease version:
+Current version:
 
 ```bash
-dotnet add package AtomUI.Foundation --version 1.0.0-alpha.1
+dotnet add package AtomUI.Foundation --version 1.0.1
 ```
 
 If your project needs generated module catalogs, reference the generator as an analyzer:
 
 ```xml
-<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.0-alpha.1" PrivateAssets="all" />
+<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.1" PrivateAssets="all" />
 ```
 
 ## Modularity

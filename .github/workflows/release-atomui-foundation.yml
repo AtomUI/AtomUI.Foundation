@@ -23,7 +23,7 @@ on:
 
 env:
   SOURCE_DIR: ${{ github.workspace }}
-  PACKAGE_OUTPUT_DIR: ${{ github.workspace }}/output
+  PACKAGE_OUTPUT_DIR: ${{ github.workspace }}/.artifacts/Nuget
   BUILD_CONFIGURATION: ${{ github.event.inputs.build_configuration || 'Release' }}
   TARGET_BRANCH: ${{ github.event.inputs.target_branch || github.ref_name }}
 
@@ -65,30 +65,66 @@ jobs:
             "./src/AtomUI.Foundation.Generator/AtomUI.Foundation.Generator.csproj"
           )
           foreach ($project in $projects) {
-            dotnet pack --no-build --output $env:PACKAGE_OUTPUT_DIR --configuration $env:BUILD_CONFIGURATION $project
+            dotnet pack --no-build --output "$env:PACKAGE_OUTPUT_DIR/$env:BUILD_CONFIGURATION" --configuration $env:BUILD_CONFIGURATION $project
+          }
+
+      - name: Validate NuGet artifacts
+        shell: pwsh
+        run: |
+          [xml]$versionProps = Get-Content "$env:SOURCE_DIR/build/Version.props"
+          $version = $versionProps.Project.PropertyGroup.AtomUIFoundationVersion
+          $packageDirectory = "$env:PACKAGE_OUTPUT_DIR/$env:BUILD_CONFIGURATION"
+          $expectedPackages = @(
+            "AtomUI.Foundation.$version.nupkg",
+            "AtomUI.Foundation.Generator.$version.nupkg"
+          )
+          $actualPackages = @(Get-ChildItem -Path $packageDirectory -Filter *.nupkg -File)
+          if ($actualPackages.Count -ne $expectedPackages.Count) {
+            throw "Expected exactly $($expectedPackages.Count) NuGet packages, found $($actualPackages.Count)."
+          }
+          foreach ($packageName in $expectedPackages) {
+            $packagePath = Join-Path -Path $packageDirectory -ChildPath $packageName
+            if (-not (Test-Path -Path $packagePath -PathType Leaf)) {
+              throw "Expected NuGet package not found: $packageName"
+            }
           }
 
       - name: Upload NuGet artifacts
         uses: actions/upload-artifact@v6
         with:
           name: NuGetPackages
-          path: ${{ env.PACKAGE_OUTPUT_DIR }}/*.nupkg
+          path: ${{ env.PACKAGE_OUTPUT_DIR }}/${{ env.BUILD_CONFIGURATION }}/*.nupkg
+          include-hidden-files: true
 
       - name: Publish to nuget.org
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to_nuget == 'true' }}
         shell: pwsh
         run: |
-          $packages = Get-ChildItem -Path $env:PACKAGE_OUTPUT_DIR -Filter *.nupkg -Recurse -File
-          foreach ($pkg in $packages) {
+          if ($env:BUILD_CONFIGURATION -ne "Release") {
+            throw "Publishing requires Release configuration."
+          }
+          [xml]$versionProps = Get-Content "$env:SOURCE_DIR/build/Version.props"
+          $version = $versionProps.Project.PropertyGroup.AtomUIFoundationVersion
+          $packageDirectory = "$env:PACKAGE_OUTPUT_DIR/$env:BUILD_CONFIGURATION"
+          $packageIds = @("AtomUI.Foundation", "AtomUI.Foundation.Generator")
+          foreach ($packageId in $packageIds) {
+            $normalizedPackageId = $packageId.ToLowerInvariant()
+            $versionIndex = Invoke-RestMethod "https://api.nuget.org/v3-flatcontainer/$normalizedPackageId/index.json"
+            if ($versionIndex.versions -contains $version) {
+              throw "NuGet package version already exists: $packageId $version"
+            }
+          }
+          foreach ($packageId in $packageIds) {
+            $packagePath = Join-Path -Path $packageDirectory -ChildPath "$packageId.$version.nupkg"
             try {
-              dotnet nuget push $pkg.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+              dotnet nuget push $packagePath --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
               if ($LASTEXITCODE -ne 0) {
                 exit $LASTEXITCODE
               }
-              Write-Output "Published NuGet package: $($pkg.Name)"
+              Write-Output "Published NuGet package: $packageId $version"
             }
             catch {
-              Write-Error "Publish $($pkg.Name) error: $_"
+              Write-Error "Publish $packageId $version error: $_"
               exit 1
             }
           }

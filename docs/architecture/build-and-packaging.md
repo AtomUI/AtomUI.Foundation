@@ -11,7 +11,7 @@ AtomUI.Foundation uses centralized MSBuild configuration from the repository roo
 | `build/Version.props` | Shared package version property. |
 | `build/Common.props` | Target frameworks, pack defaults, and compiler settings. |
 | `build/PackageMetaInfo.props` | NuGet package identity and metadata. |
-| `build/Output.props` | Centralized `output/` paths for build, obj, and package artifacts. |
+| `build/Output.props` | Centralized `.artifacts/` paths for build, obj, test, and package artifacts. |
 
 ## Packages
 
@@ -28,6 +28,8 @@ dotnet test tests/AtomUI.Foundation.Tests/AtomUI.Foundation.Tests.csproj --frame
 dotnet test tests/AtomUI.Foundation.Generator.Tests/AtomUI.Foundation.Generator.Tests.csproj --framework net10.0
 dotnet pack AtomUI.Foundation.slnx --configuration Release
 ```
+
+Build outputs are stored under `.artifacts/bin/<Configuration>`, intermediate outputs under `.artifacts/<Project>/obj`, test results under `.artifacts/TestResults/<Project>`, and NuGet packages under `.artifacts/Nuget/<Configuration>`.
 
 ## Release Workflow
 

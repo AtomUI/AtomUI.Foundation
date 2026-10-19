@@ -75,7 +75,7 @@ if ([string]::IsNullOrWhiteSpace($localSourcesDir)) {
 }
 
 $repoRoot = (Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..")).Path
-$packageOutputPath = Join-Path -Path $repoRoot -ChildPath "output/Nuget/LocalSource/$buildType"
+$packageOutputPath = Join-Path -Path $repoRoot -ChildPath ".artifacts/Nuget/LocalSource/$buildType"
 $packageProjects = @(
     "src/AtomUI.Foundation.Generator/AtomUI.Foundation.Generator.csproj",
     "src/AtomUI.Foundation/AtomUI.Foundation.csproj"

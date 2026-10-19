@@ -18,19 +18,19 @@ AtomUI.Foundation 是 AtomUI 生态的基础设施仓库，提供可被其它 At
 
 | 包名 | 描述 |
 |---|---|
-| `AtomUI.Foundation` | AtomUI 共享基础 API 的运行时基础设施包。 |
-| `AtomUI.Foundation.Generator` | 用于生成 AtomUI 基础设施代码的 analyzer/source generator 包。 |
+| `AtomUI.Foundation` | AtomUI 核心运行时基础设施。 |
+| `AtomUI.Foundation.Generator` | AtomUI.Foundation 的 Roslyn 源生成器。 |
 
-当前预发布版本：
+当前版本：
 
 ```bash
-dotnet add package AtomUI.Foundation --version 1.0.0-alpha.1
+dotnet add package AtomUI.Foundation --version 1.0.1
 ```
 
 如果项目需要生成模块目录，请把 generator 作为 analyzer 引入：
 
 ```xml
-<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.0-alpha.1" PrivateAssets="all" />
+<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.1" PrivateAssets="all" />
 ```
 
 ## Modularity

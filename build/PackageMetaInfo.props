@@ -4,19 +4,21 @@
         <Title>$(MSBuildProjectName)</Title>
         <Author>Qinware Technologies Ltd.</Author>
         <Authors>$(Author)</Authors>
-        <Description Condition="'$(MSBuildProjectName)' == 'AtomUI.Foundation'">AtomUI.Foundation provides foundational runtime infrastructure for the AtomUI ecosystem.</Description>
-        <Description Condition="'$(MSBuildProjectName)' == 'AtomUI.Foundation.Generator'">AtomUI.Foundation.Generator provides Roslyn source-generation infrastructure for the AtomUI ecosystem.</Description>
+        <Description Condition="'$(MSBuildProjectName)' == 'AtomUI.Foundation'">Core runtime infrastructure for AtomUI.</Description>
+        <Description Condition="'$(MSBuildProjectName)' == 'AtomUI.Foundation.Generator'">Roslyn source generators for AtomUI.Foundation.</Description>
         <PackageTags>AtomUI;UI;Infrastructure;SourceGenerator;Roslyn</PackageTags>
         <ProjectUrl>https://qinware.com</ProjectUrl>
         <RepositoryUrl>https://github.com/AtomUI/AtomUI.Foundation</RepositoryUrl>
         <Company>Qinware Technologies Ltd.</Company>
         <Copyright>Copyright ©2018-2026, Qinware Technologies Co.,Ltd., All Rights Reserved.</Copyright>
+        <PackageIcon>logo.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <Version>$(AtomUIFoundationVersion)</Version>
     </PropertyGroup>
 
     <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)../resources/logo.png" Visible="False" Pack="True" PackagePath="/" />
         <None Include="$(MSBuildThisFileDirectory)../LICENSE" Visible="False" Pack="True" PackagePath="/" />
         <None Include="$(MSBuildThisFileDirectory)../README.md" Visible="False" Pack="True" PackagePath="/" />
     </ItemGroup>
