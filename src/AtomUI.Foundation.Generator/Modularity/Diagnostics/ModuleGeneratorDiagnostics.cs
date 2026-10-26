@@ -36,6 +36,14 @@ internal static class ModuleGeneratorDiagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static readonly DiagnosticDescriptor UnsupportedDependencyType = new(
+        "ATOMUIMODGEN011",
+        "Module dependency type cannot be referenced",
+        "Module '{0}' depends on '{1}', which is not a closed module type supported by generated catalogs",
+        "AtomUI.Modularity",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static readonly DiagnosticDescriptor ModuleTypeDoesNotImplementModule = new(
         "ATOMUIMODGEN005",
         "Module type does not implement IModule",
@@ -48,6 +56,22 @@ internal static class ModuleGeneratorDiagnostics
         "ATOMUIMODGEN006",
         "Module factory constructor is missing",
         "Module type '{0}' must declare an accessible parameterless constructor for generated AOT factory",
+        "AtomUI.Modularity",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnsupportedModuleType = new(
+        "ATOMUIMODGEN007",
+        "Module type cannot be referenced or constructed",
+        "Module type '{0}' cannot have a generated factory: {1}",
+        "AtomUI.Modularity",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor ModuleRequiredMembersNotSatisfied = new(
+        "ATOMUIMODGEN008",
+        "Module required members are not satisfied",
+        "Module type '{0}' has required members; its parameterless constructor must declare SetsRequiredMembers for a generated factory",
         "AtomUI.Modularity",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

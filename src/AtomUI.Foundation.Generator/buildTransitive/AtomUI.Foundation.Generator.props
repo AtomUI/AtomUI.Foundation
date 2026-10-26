@@ -1,0 +1,6 @@
+<Project>
+    <ItemGroup>
+        <CompilerVisibleProperty Include="AtomUIModularityCatalogNamespace" />
+        <CompilerVisibleProperty Include="AtomUIModularityCatalogTypeName" />
+    </ItemGroup>
+</Project>

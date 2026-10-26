@@ -1,0 +1,80 @@
+name: Foundation Verification
+
+on:
+  pull_request:
+    paths:
+      - "**/*.cs"
+      - "**/*.csproj"
+      - "**/*.props"
+      - "**/*.targets"
+      - "**/*.slnx"
+      - "Directory.Build.*"
+      - "Directory.Packages.props"
+      - "global.json"
+      - "tests/fixtures/**"
+      - ".github/workflows/verify.yml"
+  push:
+    branches: [release/1.0]
+    paths:
+      - "**/*.cs"
+      - "**/*.csproj"
+      - "**/*.props"
+      - "**/*.targets"
+      - "**/*.slnx"
+      - "Directory.Build.*"
+      - "Directory.Packages.props"
+      - "global.json"
+      - "tests/fixtures/**"
+      - ".github/workflows/verify.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Install Native AOT toolchain
+        run: sudo apt-get update && sudo apt-get install --yes clang zlib1g-dev libssl-dev libbrotli-dev
+
+      - name: Build Debug solution
+        run: dotnet build AtomUI.Foundation.slnx --configuration Debug
+
+      - name: Build Release solution for net8.0 and net10.0
+        run: dotnet build AtomUI.Foundation.slnx --configuration Release
+
+      - name: Test runtime behavior
+        run: dotnet test tests/AtomUI.Foundation.Tests/AtomUI.Foundation.Tests.csproj --framework net10.0 --configuration Release --no-build
+
+      - name: Test source generator behavior
+        run: dotnet test tests/AtomUI.Foundation.Generator.Tests/AtomUI.Foundation.Generator.Tests.csproj --framework net10.0 --configuration Release --no-build
+
+      - name: Verify real ProjectReference and NuGet consumers
+        run: python3 tests/fixtures/generator-consumer/verify.py --mode all --case all --aot --work-dir .artifacts/foundation-verification
+
+      - name: Check whitespace
+        env:
+          PULL_REQUEST_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ -n "$PULL_REQUEST_BASE" ]]; then
+            git diff --check "$PULL_REQUEST_BASE...$GITHUB_SHA"
+          else
+            git show --check --oneline HEAD
+          fi
+
+      - name: Upload consumer verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: foundation-consumer-verification
+          path: .artifacts/foundation-verification/**

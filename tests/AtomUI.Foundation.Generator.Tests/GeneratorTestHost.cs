@@ -98,7 +98,8 @@ internal static class GeneratorTestHost
                 .ToDictionary(
                     syntaxTree => Path.GetFileName(syntaxTree.FilePath),
                     syntaxTree => syntaxTree.GetText().ToString()),
-            allDiagnostics);
+            allDiagnostics,
+            outputCompilation.GetDiagnostics());
     }
 
     public static MetadataReference CreateReference(string source, string assemblyName)
@@ -151,7 +152,8 @@ internal static class GeneratorTestHost
 
 internal sealed record GeneratorRunResult(
     IReadOnlyDictionary<string, string> GeneratedSources,
-    ImmutableArray<Diagnostic> Diagnostics);
+    ImmutableArray<Diagnostic> Diagnostics,
+    ImmutableArray<Diagnostic> CompilationDiagnostics);
 
 internal sealed class DictionaryAnalyzerConfigOptionsProvider(
     IReadOnlyDictionary<string, string> globalOptions)

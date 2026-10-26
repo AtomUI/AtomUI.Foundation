@@ -13,7 +13,7 @@ public sealed class ModuleResolutionResult
         _diagnostics = Array.AsReadOnly((diagnostics ?? []).ToArray());
     }
 
-    public bool IsSuccess => _diagnostics.Count == 0;
+    public bool IsSuccess => !_diagnostics.Any(diagnostic => diagnostic.Severity == ModuleDiagnosticSeverity.Error);
 
     public IReadOnlyList<ModuleDescriptor> Modules => _modules;
 

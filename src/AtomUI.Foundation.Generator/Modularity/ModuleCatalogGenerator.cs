@@ -84,6 +84,7 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
                 cancellationToken.ThrowIfCancellationRequested();
                 var location = attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation();
                 dependencies.Add(new ModuleDependencyModel(
+                    dependencyType,
                     dependencyType.ToDisplayString(TypeNameFormat),
                     IsModule(dependencyType),
                     HasModuleAttribute(dependencyType),
@@ -96,12 +97,16 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
         var displayName = GetNamedString(moduleAttribute, "DisplayName", InferDisplayName(typeSymbol.Name));
 
         return new ModuleModel(
+            typeSymbol,
             id,
             displayName,
             typeName,
             moduleAttribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation(),
+            typeDeclaration.Identifier.GetLocation(),
             IsModule(typeSymbol),
+            GetUnsupportedShape(typeSymbol, context.SemanticModel.Compilation),
             HasAccessibleParameterlessConstructor(typeSymbol),
+            SatisfiesRequiredMembers(typeSymbol),
             dependencies
                 .OrderBy(dependency => dependency.TypeName, StringComparer.Ordinal)
                 .ToImmutableArray());
@@ -112,9 +117,7 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (context.Node is not InvocationExpressionSyntax invocation ||
-            invocation.Expression is not MemberAccessExpressionSyntax memberAccess ||
-            !string.Equals(memberAccess.Name.Identifier.ValueText, "FromSerializedValue", StringComparison.Ordinal))
+        if (context.Node is not InvocationExpressionSyntax invocation)
         {
             return null;
         }
@@ -173,6 +176,8 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
         }
 
         var moduleArray = modules
+            .GroupBy(module => module.Symbol, SymbolEqualityComparer.Default)
+            .Select(group => group.First())
             .OrderBy(module => module.Id, StringComparer.Ordinal)
             .ThenBy(module => module.TypeName, StringComparer.Ordinal)
             .ToArray();
@@ -197,13 +202,13 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
     private static IReadOnlyList<ModuleModel> OrderModules(
         IReadOnlyList<ModuleModel> modules)
     {
-        var modulesByTypeName = modules.ToDictionary(module => module.TypeName, StringComparer.Ordinal);
+        var modulesBySymbol = CreateModuleMap(modules);
         var ordered = new List<ModuleModel>();
-        var states = new Dictionary<string, VisitState>(StringComparer.Ordinal);
+        var states = new Dictionary<INamedTypeSymbol, VisitState>(SymbolEqualityComparer.Default);
 
         foreach (var module in modules)
         {
-            Visit(module, modulesByTypeName, states, ordered);
+            Visit(module, modulesBySymbol, states, ordered);
         }
 
         return ordered;
@@ -241,11 +246,28 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
                 continue;
             }
 
+            if (module.UnsupportedShape is not null)
+            {
+                diagnostics.Add(new ModuleGeneratorDiagnostic(
+                    ModuleGeneratorDiagnostics.UnsupportedModuleType,
+                    module.TypeLocation,
+                    module.TypeName,
+                    module.UnsupportedShape));
+                continue;
+            }
+
             if (!module.HasAccessibleParameterlessConstructor)
             {
                 diagnostics.Add(new ModuleGeneratorDiagnostic(
                     ModuleGeneratorDiagnostics.ModuleFactoryConstructorMissing,
                     module.Location,
+                    module.TypeName));
+            }
+            else if (!module.SatisfiesRequiredMembers)
+            {
+                diagnostics.Add(new ModuleGeneratorDiagnostic(
+                    ModuleGeneratorDiagnostics.ModuleRequiredMembersNotSatisfied,
+                    module.TypeLocation,
                     module.TypeName));
             }
         }
@@ -259,6 +281,16 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
         {
             foreach (var dependency in module.Dependencies)
             {
+                if (HasOpenTypeParameters(dependency.Symbol))
+                {
+                    diagnostics.Add(new ModuleGeneratorDiagnostic(
+                        ModuleGeneratorDiagnostics.UnsupportedDependencyType,
+                        dependency.Location ?? module.Location,
+                        module.TypeName,
+                        dependency.TypeName));
+                    continue;
+                }
+
                 if (!dependency.IsModule)
                 {
                     diagnostics.Add(new ModuleGeneratorDiagnostic(
@@ -285,13 +317,13 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
             return diagnostics;
         }
 
-        var modulesByTypeName = modules.ToDictionary(module => module.TypeName, StringComparer.Ordinal);
-        var states = new Dictionary<string, VisitState>(StringComparer.Ordinal);
-        var path = new Stack<string>();
+        var modulesBySymbol = CreateModuleMap(modules);
+        var states = new Dictionary<INamedTypeSymbol, VisitState>(SymbolEqualityComparer.Default);
+        var path = new Stack<ModuleModel>();
 
         foreach (var module in modules)
         {
-            VisitForCycle(module, modulesByTypeName, states, path, diagnostics);
+            VisitForCycle(module, modulesBySymbol, states, path, diagnostics);
             if (HasErrors(diagnostics))
             {
                 return diagnostics;
@@ -299,6 +331,22 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
         }
 
         return diagnostics;
+    }
+
+    private static bool HasOpenTypeParameters(INamedTypeSymbol type)
+    {
+        if (type.IsUnboundGenericType || type.TypeArguments.Any(ContainsTypeParameter))
+        {
+            return true;
+        }
+
+        return type.ContainingType is not null && HasOpenTypeParameters(type.ContainingType);
+    }
+
+    private static bool ContainsTypeParameter(ITypeSymbol type)
+    {
+        return type.TypeKind == TypeKind.TypeParameter ||
+               type is INamedTypeSymbol named && HasOpenTypeParameters(named);
     }
 
     private static void ReportDiagnostic(SourceProductionContext context, ModuleGeneratorDiagnostic diagnostic)
@@ -313,11 +361,11 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
 
     private static void Visit(
         ModuleModel module,
-        IReadOnlyDictionary<string, ModuleModel> modulesByTypeName,
-        IDictionary<string, VisitState> states,
+        IReadOnlyDictionary<INamedTypeSymbol, ModuleModel> modulesBySymbol,
+        IDictionary<INamedTypeSymbol, VisitState> states,
         ICollection<ModuleModel> ordered)
     {
-        if (states.TryGetValue(module.TypeName, out var state))
+        if (states.TryGetValue(module.Symbol, out var state))
         {
             if (state == VisitState.Visited)
             {
@@ -327,30 +375,30 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
             return;
         }
 
-        states.Add(module.TypeName, VisitState.Visiting);
+        states.Add(module.Symbol, VisitState.Visiting);
 
         foreach (var dependency in module.Dependencies)
         {
-            if (!modulesByTypeName.TryGetValue(dependency.TypeName, out var dependencyModule))
+            if (!modulesBySymbol.TryGetValue(dependency.Symbol, out var dependencyModule))
             {
                 continue;
             }
 
-            Visit(dependencyModule, modulesByTypeName, states, ordered);
+            Visit(dependencyModule, modulesBySymbol, states, ordered);
         }
 
-        states[module.TypeName] = VisitState.Visited;
+        states[module.Symbol] = VisitState.Visited;
         ordered.Add(module);
     }
 
     private static void VisitForCycle(
         ModuleModel module,
-        IReadOnlyDictionary<string, ModuleModel> modulesByTypeName,
-        IDictionary<string, VisitState> states,
-        Stack<string> path,
+        IReadOnlyDictionary<INamedTypeSymbol, ModuleModel> modulesBySymbol,
+        IDictionary<INamedTypeSymbol, VisitState> states,
+        Stack<ModuleModel> path,
         ICollection<ModuleGeneratorDiagnostic> diagnostics)
     {
-        if (states.TryGetValue(module.TypeName, out var state))
+        if (states.TryGetValue(module.Symbol, out var state))
         {
             if (state == VisitState.Visited)
             {
@@ -360,21 +408,21 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
             diagnostics.Add(new ModuleGeneratorDiagnostic(
                 ModuleGeneratorDiagnostics.DependencyCycle,
                 module.Location,
-                CreateCyclePath(path, module.TypeName)));
+                CreateCyclePath(path, module)));
             return;
         }
 
-        states.Add(module.TypeName, VisitState.Visiting);
-        path.Push(module.TypeName);
+        states.Add(module.Symbol, VisitState.Visiting);
+        path.Push(module);
 
         foreach (var dependency in module.Dependencies)
         {
-            if (!modulesByTypeName.TryGetValue(dependency.TypeName, out var dependencyModule))
+            if (!modulesBySymbol.TryGetValue(dependency.Symbol, out var dependencyModule))
             {
                 continue;
             }
 
-            VisitForCycle(dependencyModule, modulesByTypeName, states, path, diagnostics);
+            VisitForCycle(dependencyModule, modulesBySymbol, states, path, diagnostics);
             if (HasErrors(diagnostics))
             {
                 return;
@@ -382,16 +430,27 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
         }
 
         path.Pop();
-        states[module.TypeName] = VisitState.Visited;
+        states[module.Symbol] = VisitState.Visited;
     }
 
-    private static string CreateCyclePath(IEnumerable<string> path, string repeatedModuleTypeName)
+    private static Dictionary<INamedTypeSymbol, ModuleModel> CreateModuleMap(IEnumerable<ModuleModel> modules)
+    {
+        var map = new Dictionary<INamedTypeSymbol, ModuleModel>(SymbolEqualityComparer.Default);
+        foreach (var module in modules)
+        {
+            map.Add(module.Symbol, module);
+        }
+
+        return map;
+    }
+
+    private static string CreateCyclePath(IEnumerable<ModuleModel> path, ModuleModel repeatedModule)
     {
         var orderedPath = path.Reverse().ToArray();
-        var cycleStart = Array.IndexOf(orderedPath, repeatedModuleTypeName);
-        return cycleStart < 0
-            ? string.Join(" -> ", orderedPath.Append(repeatedModuleTypeName))
-            : string.Join(" -> ", orderedPath.Skip(cycleStart).Append(repeatedModuleTypeName));
+        var cycleStart = Array.FindIndex(orderedPath,
+            module => SymbolEqualityComparer.Default.Equals(module.Symbol, repeatedModule.Symbol));
+        return string.Join(" -> ", orderedPath.Skip(Math.Max(0, cycleStart))
+            .Append(repeatedModule).Select(module => module.TypeName));
     }
 
     private static string EmitModuleCatalog(
@@ -419,13 +478,13 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
             var module = modules[i];
             var suffix = i == modules.Count - 1 ? string.Empty : ",";
             builder.Append("            global::AtomUI.Modularity.ModuleRegistration.For<")
-                .Append(module.TypeName).AppendLine(">(");
+                .Append(module.CodeTypeName).AppendLine(">(");
             builder.Append("                global::AtomUI.Modularity.ModuleDescriptor.For<")
-                .Append(module.TypeName).AppendLine(">(");
+                .Append(module.CodeTypeName).AppendLine(">(");
             builder.Append("                    ").Append(StringLiteral(module.DisplayName)).AppendLine(",");
             EmitDependencies(builder, module);
             builder.AppendLine("                ),");
-            builder.Append("                static () => new ").Append(module.TypeName).AppendLine("())" + suffix);
+            builder.Append("                static () => new ").Append(module.CodeTypeName).AppendLine("())" + suffix);
         }
 
         builder.AppendLine("        ];");
@@ -455,7 +514,7 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
             builder.Append("                        global::AtomUI.Modularity.ModuleDependencyDescriptor.")
                 .Append("Required")
                 .Append("<")
-                .Append(dependency.TypeName)
+                .Append(dependency.CodeTypeName)
                 .AppendLine(">()" + suffix);
         }
 
@@ -531,14 +590,64 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
         return $"{assemblyName}/{typeName}";
     }
 
+    private static string? GetUnsupportedShape(INamedTypeSymbol type, Compilation compilation)
+    {
+        if (type.TypeKind != TypeKind.Class || type.IsAbstract)
+        {
+            return "the type must be a non-abstract class";
+        }
+
+        for (var current = type; current is not null; current = current.ContainingType)
+        {
+            if (current.Arity != 0)
+            {
+                return "generic module types and generic containing types are unsupported";
+            }
+
+            if (current.IsFileLocal)
+            {
+                return "file-local module types and file-local containing types cannot be referenced from the catalog";
+            }
+        }
+
+        return compilation.IsSymbolAccessibleWithin(type, compilation.Assembly)
+            ? null
+            : "the type and all containing types must be accessible from the generated catalog";
+    }
+
+    private static bool SatisfiesRequiredMembers(INamedTypeSymbol type)
+    {
+        var constructor = type.InstanceConstructors.FirstOrDefault(static constructor =>
+            constructor.Parameters.Length == 0 && IsCatalogAccessible(constructor.DeclaredAccessibility));
+        if (constructor is null || constructor.GetAttributes().Any(static attribute =>
+                IsAttribute(attribute, "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute")))
+        {
+            return true;
+        }
+
+        for (var current = type; current is not null; current = current.BaseType)
+        {
+            if (current.GetMembers().Any(static member =>
+                    member is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true }))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsCatalogAccessible(Accessibility accessibility)
+    {
+        return accessibility is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal;
+    }
+
     private static bool HasAccessibleParameterlessConstructor(INamedTypeSymbol type)
     {
         return type is { IsAbstract: false, TypeKind: TypeKind.Class } &&
                type.InstanceConstructors.Any(static constructor =>
                    constructor.Parameters.Length == 0 &&
-                   constructor.DeclaredAccessibility is Accessibility.Public
-                       or Accessibility.Internal
-                       or Accessibility.ProtectedOrInternal);
+                   IsCatalogAccessible(constructor.DeclaredAccessibility));
     }
 
     private static string StringLiteral(string value)
@@ -584,22 +693,40 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
     private sealed class ModuleModel
     {
         public ModuleModel(
+            INamedTypeSymbol symbol,
             string id,
             string displayName,
             string typeName,
             Location? location,
+            Location typeLocation,
             bool isModule,
+            string? unsupportedShape,
             bool hasAccessibleParameterlessConstructor,
+            bool satisfiesRequiredMembers,
             ImmutableArray<ModuleDependencyModel> dependencies)
         {
+            Symbol = symbol;
             Id = id;
             DisplayName = displayName;
             TypeName = typeName;
             Location = location;
+            TypeLocation = typeLocation;
             IsModule = isModule;
+            UnsupportedShape = unsupportedShape;
+            SatisfiesRequiredMembers = satisfiesRequiredMembers;
             HasAccessibleParameterlessConstructor = hasAccessibleParameterlessConstructor;
             Dependencies = dependencies;
         }
+
+        public INamedTypeSymbol Symbol { get; }
+
+        public string CodeTypeName => Symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        public Location TypeLocation { get; }
+
+        public string? UnsupportedShape { get; }
+
+        public bool SatisfiesRequiredMembers { get; }
 
         public string Id { get; }
 
@@ -647,7 +774,7 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
                 out var typeNameValue);
 
             string? @namespace = null;
-            if (hasNamespace)
+            if (hasNamespace && !string.IsNullOrEmpty(namespaceValue))
             {
                 if (!string.IsNullOrWhiteSpace(namespaceValue) && IsValidNamespace(namespaceValue))
                 {
@@ -665,7 +792,7 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
             }
 
             var typeName = DefaultTypeName;
-            if (hasTypeName)
+            if (hasTypeName && !string.IsNullOrEmpty(typeNameValue))
             {
                 if (IsValidIdentifier(typeNameValue))
                 {
@@ -721,16 +848,22 @@ public sealed class ModuleCatalogGenerator : IIncrementalGenerator
     private sealed class ModuleDependencyModel
     {
         public ModuleDependencyModel(
+            INamedTypeSymbol symbol,
             string typeName,
             bool isModule,
             bool hasModuleAttribute,
             Location? location)
         {
+            Symbol = symbol;
             TypeName = typeName;
             IsModule = isModule;
             HasModuleAttribute = hasModuleAttribute;
             Location = location;
         }
+
+        public INamedTypeSymbol Symbol { get; }
+
+        public string CodeTypeName => Symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
         public string TypeName { get; }
 

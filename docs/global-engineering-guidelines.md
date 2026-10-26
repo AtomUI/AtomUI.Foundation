@@ -9,6 +9,8 @@ This document is the global engineering rules entry point for AtomUI.Foundation.
 - Put engineering process and coding rules under `docs/engineering/`.
 - Put development plans under `docs/superpowers/plans/`.
 - Do not put architecture or design documents under `docs/superpowers/`.
+- Treat [the architecture overview](architecture/overview.md) and its focused design chapters as the canonical contracts. Dated proposals, assessments, audits and execution plans retain decisions and evidence; they do not override the canonical design or prove implementation status.
+- Keep new public API names and package boundaries in the relevant canonical chapter before implementation. Execution plans reference those contracts instead of defining a competing API.
 
 ## Change Discipline
 

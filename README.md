@@ -22,16 +22,16 @@ The first release focuses on modularity:
 | `AtomUI.Foundation` | Core runtime infrastructure for AtomUI. |
 | `AtomUI.Foundation.Generator` | Roslyn source generators for AtomUI.Foundation. |
 
-Current version:
+Current release:
 
 ```bash
-dotnet add package AtomUI.Foundation --version 1.0.1
+dotnet add package AtomUI.Foundation --version 1.0.2
 ```
 
 If your project needs generated module catalogs, reference the generator as an analyzer:
 
 ```xml
-<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.1" PrivateAssets="all" />
+<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.2" PrivateAssets="all" />
 ```
 
 ## Modularity
@@ -58,18 +58,31 @@ The module catalog generator emits an internal `ModuleGeneratedCatalog` type wit
 using AtomUI.Modularity;
 
 var registrations = ModuleGeneratedCatalog.CreateRegistrations();
-var host = new ModuleHost(registrations);
+var options = new ModuleHostOptionsBuilder().Enable<SelectionModule>().Build();
+var host = new ModuleHost(registrations, options);
 var result = await host.InitializeAsync();
 ```
 
-Generated catalog naming can be customized with MSBuild properties:
+Registration does not enable a module. Enabling `SelectionModule` also selects its required `CoreModule`; an empty enable-root set runs no modules.
+
+The 1.0.2 Generator package forwards custom catalog settings automatically for `PackageReference` consumers. Source `ProjectReference` consumers outside this repository should import the generator's shared props file and expose the settings to the compiler:
 
 ```xml
 <PropertyGroup>
     <AtomUIModularityCatalogNamespace>MyApp.Generated</AtomUIModularityCatalogNamespace>
     <AtomUIModularityCatalogTypeName>MyModuleCatalog</AtomUIModularityCatalogTypeName>
 </PropertyGroup>
+<ItemGroup>
+    <CompilerVisibleProperty Include="AtomUIModularityCatalogNamespace" />
+    <CompilerVisibleProperty Include="AtomUIModularityCatalogTypeName" />
+</ItemGroup>
 ```
+
+## Architecture Contracts
+
+The [architecture overview](docs/architecture/overview.md) indexes the canonical designs for the [module host](docs/architecture/modularity.md), [service registration](docs/architecture/service-registration.md), [managed lifetimes](docs/architecture/managed-lifetimes.md), and [source generation](docs/architecture/source-generation.md).
+
+Version 1.0.2 preserves neutral descriptors and caller-owned instances while adding an opt-in managed service runtime with typed factories, owner-backed leases, scope sharing, and coordinated retirement. Managed behavior is enabled through `ModuleServiceRuntime`; existing descriptor registration does not activate a container or transfer ownership. See [verification contracts](docs/engineering/verification.md) for the tested scope and remaining cross-platform/product qualifications.
 
 ## Local Development
 

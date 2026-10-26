@@ -2,6 +2,8 @@
 
 `AtomUI.Foundation.Generator` is packaged as a Roslyn analyzer.
 
+The canonical behavior is defined in [module source generation](../architecture/source-generation.md). The package already implements a module catalog generator; treat symbol discovery, diagnostics and build integration as product behavior, not a project skeleton.
+
 ## Targeting
 
 - Target `netstandard2.0`.
@@ -16,7 +18,9 @@
 
 ## Testing
 
-When real generator behavior is added, add focused generator tests before implementation. Tests must verify generated source content and compiler diagnostics.
+Add focused regression tests before changing generator behavior. Verify partial symbol uniqueness, type accessibility and constructibility, global type names, precise diagnostics, and compilation of the generated sources.
+
+Validate catalog settings through real MSBuild and NuGet consumers, including CompilerVisibleProperty and the generated editorconfig. Injecting AnalyzerConfig values directly in unit tests does not verify the package configuration bridge. Full acceptance requirements are in [verification contracts](verification.md).
 
 Run generator tests with:
 

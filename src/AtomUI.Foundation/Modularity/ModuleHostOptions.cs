@@ -25,6 +25,8 @@ public sealed class ModuleHostOptions
 
     public IModuleDiagnostics? Diagnostics { get; }
 
+    public IModuleHostLifetime? Lifetime { get; init; }
+
     private static IEnumerable<ModuleId> CreateModuleIds(IEnumerable<Type>? moduleTypes)
     {
         foreach (var moduleType in moduleTypes ?? [])

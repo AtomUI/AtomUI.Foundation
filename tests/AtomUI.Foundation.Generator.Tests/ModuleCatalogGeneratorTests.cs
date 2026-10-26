@@ -19,9 +19,9 @@ public class ModuleCatalogGeneratorTests
         var source = result.GeneratedSources["ModuleGeneratedCatalog.g.cs"];
         source.ShouldContain("Demo.CoreModule");
         source.ShouldContain("Demo.SelectionModule");
-        source.ShouldContain("global::AtomUI.Modularity.ModuleRegistration.For<Demo.SelectionModule>");
-        source.ShouldContain("global::AtomUI.Modularity.ModuleDescriptor.For<Demo.SelectionModule>");
-        source.ShouldContain("global::AtomUI.Modularity.ModuleDependencyDescriptor.Required<Demo.CoreModule>()");
+        source.ShouldContain("global::AtomUI.Modularity.ModuleRegistration.For<global::Demo.SelectionModule>");
+        source.ShouldContain("global::AtomUI.Modularity.ModuleDescriptor.For<global::Demo.SelectionModule>");
+        source.ShouldContain("global::AtomUI.Modularity.ModuleDependencyDescriptor.Required<global::Demo.CoreModule>()");
         source.ShouldNotContain("Version.Parse");
         source.ShouldNotContain("ModuleEnablement");
         source.ShouldNotContain("OptionalIntegration");
@@ -29,7 +29,7 @@ public class ModuleCatalogGeneratorTests
         source.ShouldNotContain("new global::AtomUI.Modularity.ModuleId(\"Demo.SelectionModule\")");
         source.ShouldNotContain("ModuleCapabilityId");
         source.ShouldNotContain("ForGeneratedMetadata");
-        source.ShouldContain("static () => new Demo.SelectionModule()");
+        source.ShouldContain("static () => new global::Demo.SelectionModule()");
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public class ModuleCatalogGeneratorTests
             """, new ModuleCatalogGenerator());
 
         var source = result.GeneratedSources["ModuleGeneratedCatalog.g.cs"];
-        source.ShouldContain("global::AtomUI.Modularity.ModuleDependencyDescriptor.Required<Demo.CoreModule>()");
+        source.ShouldContain("global::AtomUI.Modularity.ModuleDependencyDescriptor.Required<global::Demo.CoreModule>()");
         source.ShouldNotContain("OptionalIntegration");
         source.ShouldNotContain(".Conflict<");
         source.ShouldNotContain("Capability");
@@ -362,8 +362,8 @@ public class ModuleCatalogGeneratorTests
             """, new ModuleCatalogGenerator());
 
         var source = result.GeneratedSources["ModuleGeneratedCatalog.g.cs"];
-        source.ShouldContain("global::AtomUI.Modularity.ModuleRegistration.For<Demo.SelectionModule>");
-        source.ShouldContain("global::AtomUI.Modularity.ModuleDescriptor.For<Demo.SelectionModule>");
+        source.ShouldContain("global::AtomUI.Modularity.ModuleRegistration.For<global::Demo.SelectionModule>");
+        source.ShouldContain("global::AtomUI.Modularity.ModuleDescriptor.For<global::Demo.SelectionModule>");
         source.ShouldContain("\"Selection\"");
     }
 
@@ -395,7 +395,7 @@ public class ModuleCatalogGeneratorTests
         result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
             .ShouldBeEmpty();
         result.GeneratedSources["ModuleGeneratedCatalog.g.cs"]
-            .ShouldContain("global::AtomUI.Modularity.ModuleDependencyDescriptor.Required<External.CoreModule>()");
+            .ShouldContain("global::AtomUI.Modularity.ModuleDependencyDescriptor.Required<global::External.CoreModule>()");
     }
 
     private const string ModuleSource = """

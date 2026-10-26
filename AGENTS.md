@@ -25,10 +25,13 @@ AtomUI.Foundation/
 
 - Global engineering rules: [docs/global-engineering-guidelines.md](docs/global-engineering-guidelines.md)
 - Architecture overview: [docs/architecture/overview.md](docs/architecture/overview.md)
+- Module host contract: [docs/architecture/modularity.md](docs/architecture/modularity.md)
+- Managed lifetime contract: [docs/architecture/managed-lifetimes.md](docs/architecture/managed-lifetimes.md)
 - Build and packaging: [docs/architecture/build-and-packaging.md](docs/architecture/build-and-packaging.md)
 - Dependency graph: [docs/architecture/dependency-graph.md](docs/architecture/dependency-graph.md)
 - Agent collaboration: [docs/engineering/agent-guidelines.md](docs/engineering/agent-guidelines.md)
 - Source generators: [docs/engineering/source-generator-guidelines.md](docs/engineering/source-generator-guidelines.md)
+- Verification contracts: [docs/engineering/verification.md](docs/engineering/verification.md)
 
 ## Common Commands
 

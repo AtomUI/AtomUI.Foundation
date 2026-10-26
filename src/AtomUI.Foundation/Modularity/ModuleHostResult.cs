@@ -11,7 +11,7 @@ public sealed class ModuleHostResult
 
     public static ModuleHostResult Success { get; } = new();
 
-    public bool IsSuccess => _diagnostics.Count == 0;
+    public bool IsSuccess => !_diagnostics.Any(diagnostic => diagnostic.Severity == ModuleDiagnosticSeverity.Error);
 
     public IReadOnlyList<ModuleDiagnostic> Diagnostics => _diagnostics;
 }

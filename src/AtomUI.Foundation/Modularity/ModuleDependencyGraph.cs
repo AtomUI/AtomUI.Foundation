@@ -13,158 +13,82 @@ public sealed class ModuleDependencyGraph
     {
         var result = TryResolve(modules);
         result.ThrowIfFailed();
-
         return new ModuleDependencyGraph(result.Modules);
     }
 
     public static ModuleDependencyGraph Resolve(ModuleCatalog catalog)
     {
         ArgumentNullException.ThrowIfNull(catalog);
-
         return Resolve(catalog.Modules);
     }
 
     public static ModuleResolutionResult TryResolve(ModuleCatalog catalog)
     {
         ArgumentNullException.ThrowIfNull(catalog);
-
         return TryResolve(catalog.Modules);
     }
 
     public static ModuleResolutionResult TryResolve(IEnumerable<ModuleDescriptor> modules)
     {
         ArgumentNullException.ThrowIfNull(modules);
-
         var moduleArray = modules.ToArray();
-        var diagnostics = Validate(moduleArray);
-
-        if (diagnostics.Count > 0)
-        {
-            return new ModuleResolutionResult(diagnostics: diagnostics);
-        }
-
-        var moduleMap = BuildModuleMap(moduleArray);
-        var ordered = new List<ModuleDescriptor>();
-        var states = new Dictionary<ModuleId, VisitState>();
-        var path = new Stack<ModuleId>();
-
-        try
-        {
-            foreach (var module in moduleArray)
-            {
-                Visit(module, moduleMap, states, ordered, path);
-            }
-        }
-        catch (ModuleGraphException exception)
-        {
-            return new ModuleResolutionResult(diagnostics: exception.Diagnostics);
-        }
-
-        return new ModuleResolutionResult(ordered);
-    }
-
-    private static List<ModuleDiagnostic> Validate(IReadOnlyList<ModuleDescriptor> modules)
-    {
-        var diagnostics = new List<ModuleDiagnostic>();
-        var duplicate = modules
-            .Select(module => module.Id)
-            .GroupBy(moduleId => moduleId)
-            .FirstOrDefault(group => group.Count() > 1);
-
+        var duplicate = moduleArray.GroupBy(module => module.Id).FirstOrDefault(group => group.Count() > 1);
         if (duplicate is not null)
         {
-            diagnostics.Add(new ModuleDiagnostic(
+            return new ModuleResolutionResult(diagnostics: [new ModuleDiagnostic(
                 ModuleDiagnosticCodes.DuplicateModuleId,
-                $"Module id '{duplicate.Key}' is declared more than once.",
-                duplicate.Key));
-
-            return diagnostics;
+                $"Module id '{duplicate.Key}' is declared more than once.", duplicate.Key,
+                dependencyPath: [duplicate.Key, duplicate.Key])]);
         }
 
-        var moduleMap = BuildModuleMap(modules);
+        var moduleMap = moduleArray.ToDictionary(module => module.Id);
+        var dependencies = moduleArray.SelectMany(module => module.Dependencies).Select(dependency => dependency.ModuleId).ToHashSet();
+        var states = new Dictionary<ModuleId, VisitState>();
+        var ordered = new List<ModuleDescriptor>();
+        var diagnostics = new List<ModuleDiagnostic>();
+        var path = new List<ModuleId>();
 
-        foreach (var module in modules)
+        // Start with consumer roots even when registrations arrived in dependency-first order,
+        // so missing-dependency diagnostics retain the complete originating path.
+        foreach (var module in moduleArray.Where(module => !dependencies.Contains(module.Id)).Concat(moduleArray))
         {
-            foreach (var dependency in module.Dependencies)
+            Visit(module);
+        }
+        return diagnostics.Count == 0 ? new ModuleResolutionResult(ordered) : new ModuleResolutionResult(diagnostics: diagnostics);
+
+        void Visit(ModuleDescriptor module)
+        {
+            if (states.TryGetValue(module.Id, out var state))
             {
-                if (!moduleMap.TryGetValue(dependency.ModuleId, out _))
+                if (state == VisitState.Visiting)
                 {
-                    diagnostics.Add(new ModuleDiagnostic(
-                        ModuleDiagnosticCodes.RequiredDependencyMissing,
-                        $"Module '{module.Id}' depends on missing module '{dependency.ModuleId}'.",
-                        module.Id,
-                        dependency.ModuleId));
+                    var cyclePath = path.Append(module.Id).ToArray();
+                    diagnostics.Add(new ModuleDiagnostic(ModuleDiagnosticCodes.DependencyCycle,
+                        $"Module dependency graph contains a cycle: {string.Join(" -> ", cyclePath)}.",
+                        module.Id, dependencyPath: cyclePath));
                 }
-            }
-        }
-
-        return diagnostics;
-    }
-
-    private static void Visit(
-        ModuleDescriptor module,
-        IReadOnlyDictionary<ModuleId, ModuleDescriptor> moduleMap,
-        IDictionary<ModuleId, VisitState> states,
-        List<ModuleDescriptor> ordered,
-        Stack<ModuleId> path)
-    {
-        if (states.TryGetValue(module.Id, out var state))
-        {
-            if (state == VisitState.Visited)
-            {
                 return;
             }
 
-            throw new ModuleGraphException([
-                new ModuleDiagnostic(
-                    ModuleDiagnosticCodes.DependencyCycle,
-                    $"Module dependency graph contains a cycle: {CreateCyclePath(path, module.Id)}.",
-                    module.Id)
-            ]);
-        }
-
-        states.Add(module.Id, VisitState.Visiting);
-        path.Push(module.Id);
-
-        foreach (var dependency in module.Dependencies)
-        {
-            if (moduleMap.TryGetValue(dependency.ModuleId, out var dependencyModule))
+            states.Add(module.Id, VisitState.Visiting);
+            path.Add(module.Id);
+            foreach (var dependency in module.Dependencies)
             {
-                Visit(dependencyModule, moduleMap, states, ordered, path);
+                if (moduleMap.TryGetValue(dependency.ModuleId, out var dependencyModule))
+                {
+                    Visit(dependencyModule);
+                }
+                else
+                {
+                    diagnostics.Add(new ModuleDiagnostic(ModuleDiagnosticCodes.RequiredDependencyMissing,
+                        $"Module '{module.Id}' depends on missing module '{dependency.ModuleId}'.",
+                        module.Id, dependency.ModuleId, dependencyPath: path.Append(dependency.ModuleId).ToArray()));
+                }
             }
+            path.RemoveAt(path.Count - 1);
+            states[module.Id] = VisitState.Visited;
+            ordered.Add(module);
         }
-
-        path.Pop();
-        states[module.Id] = VisitState.Visited;
-        ordered.Add(module);
-    }
-
-    private static string CreateCyclePath(IEnumerable<ModuleId> path, ModuleId repeatedModuleId)
-    {
-        var orderedPath = path
-            .Reverse()
-            .Select(moduleId => moduleId.Value)
-            .ToArray();
-        var cycleStart = Array.IndexOf(orderedPath, repeatedModuleId.Value);
-
-        if (cycleStart < 0)
-        {
-            return string.Join(" -> ", orderedPath.Append(repeatedModuleId.Value));
-        }
-
-        return string.Join(" -> ", orderedPath.Skip(cycleStart).Append(repeatedModuleId.Value));
-    }
-
-    private static IReadOnlyDictionary<ModuleId, ModuleDescriptor> BuildModuleMap(
-        IReadOnlyList<ModuleDescriptor> modules)
-    {
-        var moduleMap = new Dictionary<ModuleId, ModuleDescriptor>();
-        foreach (var module in modules)
-        {
-            moduleMap.TryAdd(module.Id, module);
-        }
-
-        return moduleMap;
     }
 
     private enum VisitState

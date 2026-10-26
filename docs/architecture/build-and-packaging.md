@@ -34,3 +34,17 @@ Build outputs are stored under `.artifacts/bin/<Configuration>`, intermediate ou
 ## Release Workflow
 
 `.github/workflows/release-atomui-foundation.yml` builds the solution, runs runtime and generator tests, packs both NuGet packages, uploads package artifacts, and can publish to nuget.org when manually dispatched with `publish_to_nuget=true`.
+
+The current automatic trigger is restricted to changes to that workflow file on `release/1.0`; it is not a general source-code PR validation workflow. The current test projects execute on net10.0. Release compilation of the runtime for net8.0 does not prove net8.0 execution.
+
+## Generator Configuration
+
+The 1.0.1 generator package does not include the catalog-property bridge. The 1.0.2 release adds the shared `buildTransitive` props bridge for `PackageReference` consumers. Consumers customizing catalog names through a source `ProjectReference` outside this repository must expose both properties through CompilerVisibleProperty, as shown in [source generation](source-generation.md#msbuild-配置桥接).
+
+The target package contract supplies a shared props/targets bridge for PackageReference and repository ProjectReference usage. Acceptance must inspect the real analyzer config and compile the generated configured catalog; packaging only the analyzer DLL does not prove that settings reach it.
+
+## Target Consumer Qualification
+
+The 1.0.2 release includes the explicit managed lifetime path while preserving neutral descriptors. New assemblies or a mandatory DI dependency are not implied by the logical layers in [the dependency graph](dependency-graph.md).
+
+Release qualification follows [verification contracts](../engineering/verification.md): run net8.0/net10.0 consumers, test fresh local NuGet artifacts, execute applicable desktop and trim/Native AOT cases, and preserve legacy descriptor/instance ownership. A successful build or pack alone does not qualify lease, retirement or failure-retention behavior.
