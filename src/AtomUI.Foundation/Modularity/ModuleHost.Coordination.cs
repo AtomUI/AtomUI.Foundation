@@ -157,18 +157,7 @@ public sealed partial class ModuleHost
         }
         catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "Stop")); }
 
-        for (var index = _enabledModules.Count - 1; index >= 0; index--)
-        {
-            var entry = _enabledModules[index];
-            if (!_shutdownAttempts.Add(entry)) { continue; }
-            try
-            {
-                var context = new ModuleShutdownContext(entry.Descriptor, Services);
-                await InvokeModuleAsync(entry, "Shutdown", () => entry.Module.ShutdownAsync(context, CancellationToken.None), CancellationToken.None).ConfigureAwait(false);
-                entry.Phase = ModuleHostPhase.Shutdown;
-            }
-            catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "Shutdown", entry.Descriptor.Id)); }
-        }
+        diagnostics.AddRange((await CleanupEntriesAsync(_enabledModules, Services).ConfigureAwait(false)).Diagnostics);
 
         if (_options.Lifetime is not null)
         {
@@ -180,9 +169,65 @@ public sealed partial class ModuleHost
             catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "CompleteShutdown")); }
         }
 
+        Task<ModuleHostResult>[] retired;
+        lock (_stateLock) retired = _retirements.Select(retirement => retirement.FinalCompletion).ToArray();
+        foreach (var result in await Task.WhenAll(retired).ConfigureAwait(false)) diagnostics.AddRange(result.Diagnostics);
+
         var finalResult = CreateResult(diagnostics);
         lock (_stateLock) { _phase = _terminalFailure ? ModuleHostPhase.Failed : ModuleHostPhase.Shutdown; }
         completion.TrySetResult(finalResult);
+    }
+
+    private async Task<ModuleHostResult> CleanupEntriesAsync(IEnumerable<ModuleEntry> entries, ModuleServiceRegistry services)
+    {
+        var ordered = entries.ToArray();
+        var dependents = ordered.ToDictionary(entry => entry.Descriptor.Id, _ => new List<ModuleEntry>());
+        foreach (var entry in ordered)
+            foreach (var dependency in entry.Descriptor.Dependencies)
+                if (dependents.TryGetValue(dependency.ModuleId, out var consumers)) consumers.Add(entry);
+
+        // Schedule the whole set. A reader of one independent module may only be
+        // returned by another module's Shutdown. Required consumers still finish
+        // their callbacks before the corresponding dependency starts Shutdown.
+        var operations = new Dictionary<ModuleEntry, Task<ModuleHostResult>>();
+        foreach (var entry in Enumerable.Reverse(ordered))
+        {
+            var prerequisites = Task.WhenAll(dependents[entry.Descriptor.Id].Select(consumer => operations[consumer]));
+            operations.Add(entry, ShutdownEntryAsync(entry, services, prerequisites));
+        }
+        var diagnostics = new List<ModuleDiagnostic>();
+        foreach (var result in await Task.WhenAll(operations.Values).ConfigureAwait(false)) diagnostics.AddRange(result.Diagnostics);
+        return new ModuleHostResult(diagnostics);
+    }
+
+    private Task<ModuleHostResult> ShutdownEntryAsync(ModuleEntry entry, ModuleServiceRegistry services, Task prerequisites)
+    {
+        TaskCompletionSource<ModuleHostResult> completion;
+        Task readers;
+        lock (_stateLock)
+        {
+            if (entry.ShutdownOperation is not null) return entry.ShutdownOperation;
+            completion = NewCompletion();
+            entry.ShutdownOperation = completion.Task;
+            entry.Closing = true;
+            readers = entry.Readers == 0 ? Task.CompletedTask : entry.ReadersExited!.Task;
+        }
+        _ = CompleteEntryShutdownAsync(entry, services, Task.WhenAll(readers, prerequisites), completion);
+        return completion.Task;
+    }
+
+    private async Task CompleteEntryShutdownAsync(ModuleEntry entry, ModuleServiceRegistry services, Task readers,
+        TaskCompletionSource<ModuleHostResult> completion)
+    {
+        await readers.ConfigureAwait(false);
+        try
+        {
+            var context = new ModuleShutdownContext(entry.Descriptor, services);
+            await InvokeModuleAsync(entry, "Shutdown", () => entry.Module.ShutdownAsync(context, CancellationToken.None), CancellationToken.None).ConfigureAwait(false);
+            entry.Phase = ModuleHostPhase.Shutdown;
+            completion.TrySetResult(ModuleHostResult.Success);
+        }
+        catch (Exception exception) { completion.TrySetResult(CreateResult([FailureDiagnostic(exception, "Shutdown", entry.Descriptor.Id)])); }
     }
 
     private async ValueTask InvokeModuleAsync(ModuleEntry entry, string stage, Func<ValueTask> action, CancellationToken cancellationToken)

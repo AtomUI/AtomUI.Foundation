@@ -1,0 +1,1088 @@
+{
+  "sourceFingerprint": "97c47fe3530503c25b7f16591013c89a6e44fc187c1667b95345535429561dd6",
+  "sourceCommit": "a0fbe111813b70c902a3f613ec4c73be13032c51",
+  "uncommittedCandidate": true,
+  "packageVersion": "1.0.2-reconfiguration.20261102.97c47fe35305",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "commands": [
+    {
+      "name": "pack",
+      "command": [
+        "dotnet",
+        "pack",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/src/AtomUI.Foundation/AtomUI.Foundation.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:PackageVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-o",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/feed",
+        "--nologo"
+      ],
+      "exitCode": 0,
+      "seconds": 0.826,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/pack.log",
+      "logSha256": "3ecbdd9b0d4328a5d35a74b55e3c918ecd0ec99db9024f18d6ec14d7e5cf60b7",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "jit-net8.0-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net8.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "--source",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/feed",
+        "--source",
+        "https://api.nuget.org/v3/index.json",
+        "--nologo"
+      ],
+      "exitCode": 0,
+      "seconds": 0.72,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0-restore.log",
+      "logSha256": "311483c2009d62ef442465e8bf02740650878d6a862081869bf239338183f440",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "jit-net8.0-build",
+      "command": [
+        "dotnet",
+        "build",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net8.0",
+        "--no-restore",
+        "--nologo",
+        "-o",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0/app",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net8.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false"
+      ],
+      "exitCode": 0,
+      "seconds": 0.73,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0-build.log",
+      "logSha256": "364c0dcf31090f7356908d56a24df6efde07dbbf8e92521e9a03c4c71df47205",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "jit-net8.0-run",
+      "command": [
+        "dotnet",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0/app/Consumer.dll"
+      ],
+      "exitCode": 0,
+      "seconds": 0.117,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0-run.log",
+      "logSha256": "b726f4bcc5521239b679348aae7ac6d5be2443707c7481e34860ccecb38ad950",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "jit-net10.0-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net10.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "--source",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/feed",
+        "--source",
+        "https://api.nuget.org/v3/index.json",
+        "--nologo"
+      ],
+      "exitCode": 0,
+      "seconds": 0.702,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0-restore.log",
+      "logSha256": "a9d6878c4612a7459ae7b278bc6fce81e80a79a33286812724c878ebdb501624",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "jit-net10.0-build",
+      "command": [
+        "dotnet",
+        "build",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0",
+        "--no-restore",
+        "--nologo",
+        "-o",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0/app",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net10.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false"
+      ],
+      "exitCode": 0,
+      "seconds": 0.749,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0-build.log",
+      "logSha256": "a4dea3474ec9332a6b984cd8e594d5362a7e29243b51345791f320a83a076afc",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "jit-net10.0-run",
+      "command": [
+        "dotnet",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0/app/Consumer.dll"
+      ],
+      "exitCode": 0,
+      "seconds": 0.119,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0-run.log",
+      "logSha256": "620399bd8c02b592f7eb1e5a2a252d32a07f6832404894a8275981f313b75019",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "trim-net8.0-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net8.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "-r",
+        "osx-arm64",
+        "-p:SelfContained=true",
+        "-p:PublishTrimmed=true",
+        "-p:TrimMode=link",
+        "-p:ILLinkTreatWarningsAsErrors=true",
+        "--source",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/feed",
+        "--source",
+        "https://api.nuget.org/v3/index.json",
+        "--nologo"
+      ],
+      "exitCode": 0,
+      "seconds": 0.716,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0-restore.log",
+      "logSha256": "a82ceed1d241c11bcc1b4fc9010f39b1d32ebc009aa7bb42aafc5ea687d93ca9",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "trim-net8.0-publish",
+      "command": [
+        "dotnet",
+        "publish",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net8.0",
+        "--no-restore",
+        "--nologo",
+        "-o",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0/app",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net8.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "-r",
+        "osx-arm64",
+        "-p:SelfContained=true",
+        "-p:PublishTrimmed=true",
+        "-p:TrimMode=link",
+        "-p:ILLinkTreatWarningsAsErrors=true"
+      ],
+      "exitCode": 0,
+      "seconds": 3.427,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0-publish.log",
+      "logSha256": "e2f0d113fc7ec2f7b95e8a31b875b3c72229e852cc171188b1a9a0a60f5d2d89",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "trim-net8.0-run",
+      "command": [
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0/app/Consumer"
+      ],
+      "exitCode": 0,
+      "seconds": 4.495,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0-run.log",
+      "logSha256": "b726f4bcc5521239b679348aae7ac6d5be2443707c7481e34860ccecb38ad950",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "trim-net10.0-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net10.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "-r",
+        "osx-arm64",
+        "-p:SelfContained=true",
+        "-p:PublishTrimmed=true",
+        "-p:TrimMode=link",
+        "-p:ILLinkTreatWarningsAsErrors=true",
+        "--source",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/feed",
+        "--source",
+        "https://api.nuget.org/v3/index.json",
+        "--nologo"
+      ],
+      "exitCode": 0,
+      "seconds": 0.705,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0-restore.log",
+      "logSha256": "7821a847ecb2ed2468539d5c76c5e58ba938fdd86ebd5b1138d19bdeafe57b4c",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "trim-net10.0-publish",
+      "command": [
+        "dotnet",
+        "publish",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0",
+        "--no-restore",
+        "--nologo",
+        "-o",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0/app",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net10.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "-r",
+        "osx-arm64",
+        "-p:SelfContained=true",
+        "-p:PublishTrimmed=true",
+        "-p:TrimMode=link",
+        "-p:ILLinkTreatWarningsAsErrors=true"
+      ],
+      "exitCode": 0,
+      "seconds": 3.922,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0-publish.log",
+      "logSha256": "a213966abcdbe5313075a4dbc14cf4577da4c52adee23c195d0222875733dbe2",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "trim-net10.0-run",
+      "command": [
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0/app/Consumer"
+      ],
+      "exitCode": 0,
+      "seconds": 5.037,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0-run.log",
+      "logSha256": "620399bd8c02b592f7eb1e5a2a252d32a07f6832404894a8275981f313b75019",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "aot-net8.0-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net8.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "-r",
+        "osx-arm64",
+        "-p:SelfContained=true",
+        "-p:PublishTrimmed=true",
+        "-p:TrimMode=link",
+        "-p:ILLinkTreatWarningsAsErrors=true",
+        "-p:PublishAot=true",
+        "-p:IlcTreatWarningsAsErrors=true",
+        "--source",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/feed",
+        "--source",
+        "https://api.nuget.org/v3/index.json",
+        "--nologo"
+      ],
+      "exitCode": 0,
+      "seconds": 0.741,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0-restore.log",
+      "logSha256": "c93957a4d7ebbdd5ba83585cb0aaa8aa8bfde9bf1ca959c8847f32c475085273",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "aot-net8.0-publish",
+      "command": [
+        "dotnet",
+        "publish",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net8.0",
+        "--no-restore",
+        "--nologo",
+        "-o",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0/app",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net8.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "-r",
+        "osx-arm64",
+        "-p:SelfContained=true",
+        "-p:PublishTrimmed=true",
+        "-p:TrimMode=link",
+        "-p:ILLinkTreatWarningsAsErrors=true",
+        "-p:PublishAot=true",
+        "-p:IlcTreatWarningsAsErrors=true"
+      ],
+      "exitCode": 0,
+      "seconds": 3.546,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0-publish.log",
+      "logSha256": "44b41e52af8736ee8316b068d9a26fddcf1087ff2a7545773a20175b34dc84c7",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "aot-net8.0-run",
+      "command": [
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0/app/Consumer"
+      ],
+      "exitCode": 0,
+      "seconds": 0.826,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0-run.log",
+      "logSha256": "b726f4bcc5521239b679348aae7ac6d5be2443707c7481e34860ccecb38ad950",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "aot-net10.0-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net10.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "-r",
+        "osx-arm64",
+        "-p:SelfContained=true",
+        "-p:PublishTrimmed=true",
+        "-p:TrimMode=link",
+        "-p:ILLinkTreatWarningsAsErrors=true",
+        "-p:PublishAot=true",
+        "-p:IlcTreatWarningsAsErrors=true",
+        "--source",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/feed",
+        "--source",
+        "https://api.nuget.org/v3/index.json",
+        "--nologo"
+      ],
+      "exitCode": 0,
+      "seconds": 0.728,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0-restore.log",
+      "logSha256": "53bffb6992a0e46f149f0965f5e5d4bd525400ca136873d9d3cd2cf035f73f7c",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "aot-net10.0-publish",
+      "command": [
+        "dotnet",
+        "publish",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0",
+        "--no-restore",
+        "--nologo",
+        "-o",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0/app",
+        "-p:FoundationConsumerVersion=1.0.2-reconfiguration.20261102.97c47fe35305",
+        "-p:TargetFrameworks=net10.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/packages",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false",
+        "-r",
+        "osx-arm64",
+        "-p:SelfContained=true",
+        "-p:PublishTrimmed=true",
+        "-p:TrimMode=link",
+        "-p:ILLinkTreatWarningsAsErrors=true",
+        "-p:PublishAot=true",
+        "-p:IlcTreatWarningsAsErrors=true"
+      ],
+      "exitCode": 0,
+      "seconds": 3.537,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0-publish.log",
+      "logSha256": "534da47fcd87f47f6a1f0bd4bffeb858265260cb162986bf364d880193c22f21",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    },
+    {
+      "name": "aot-net10.0-run",
+      "command": [
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0/app/Consumer"
+      ],
+      "exitCode": 0,
+      "seconds": 0.796,
+      "log": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0-run.log",
+      "logSha256": "620399bd8c02b592f7eb1e5a2a252d32a07f6832404894a8275981f313b75019",
+      "environment": {
+        "LIBRARY_PATH": "/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib"
+      }
+    }
+  ],
+  "scenarios": {
+    "jit-net8.0": {
+      "passed": true,
+      "consumerSha256": "320122b4e4c9bf7aeb1d22525491312e31adb767d8d9cb18def1fd4214db7402",
+      "tfm": "net8.0",
+      "mode": "jit",
+      "rid": "osx-arm64",
+      "binary": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net8.0/app/Consumer.dll",
+      "binarySha256": "d9ff0798e2b75f22623467045d16ca3e50fc35d4afd5aab76dc486d412a13d35",
+      "foundationAssemblySha256": "5c096531b17df8c7f295cae84f03d303e39ba50438efb5659751e337b6e9ac75",
+      "stdout": "FOUNDATION_CHANGE_CONSUMER_OK A=1 B=3 D=0 preserved=1 joint=1 rejected=1 retired=1 abort=1\nMANAGED_RUNTIME_CONSUMER_OK net8.0\n",
+      "reflectionJsonDefault": false
+    },
+    "jit-net10.0": {
+      "passed": true,
+      "consumerSha256": "320122b4e4c9bf7aeb1d22525491312e31adb767d8d9cb18def1fd4214db7402",
+      "tfm": "net10.0",
+      "mode": "jit",
+      "rid": "osx-arm64",
+      "binary": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/jit-net10.0/app/Consumer.dll",
+      "binarySha256": "89d56fb203b21e4f7b28d98fbf95c11fe0f76c2128c5857f514e18a25b5ada0f",
+      "foundationAssemblySha256": "96c663ff53ac36c1a19ee3e4adf52d959bc4466a7d4f847a98f5efe978f9aa03",
+      "stdout": "FOUNDATION_CHANGE_CONSUMER_OK A=1 B=3 D=0 preserved=1 joint=1 rejected=1 retired=1 abort=1\nMANAGED_RUNTIME_CONSUMER_OK net10.0\n",
+      "reflectionJsonDefault": false
+    },
+    "trim-net8.0": {
+      "passed": true,
+      "consumerSha256": "320122b4e4c9bf7aeb1d22525491312e31adb767d8d9cb18def1fd4214db7402",
+      "tfm": "net8.0",
+      "mode": "trim",
+      "rid": "osx-arm64",
+      "binary": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net8.0/app/Consumer",
+      "binarySha256": "8b2eb5ae6326f775c65e0764cd9a11c461ab943e7c63ccaf2019703cfb5b5cf8",
+      "foundationAssemblySha256": "5c096531b17df8c7f295cae84f03d303e39ba50438efb5659751e337b6e9ac75",
+      "stdout": "FOUNDATION_CHANGE_CONSUMER_OK A=1 B=3 D=0 preserved=1 joint=1 rejected=1 retired=1 abort=1\nMANAGED_RUNTIME_CONSUMER_OK net8.0\n",
+      "reflectionJsonDefault": false
+    },
+    "trim-net10.0": {
+      "passed": true,
+      "consumerSha256": "320122b4e4c9bf7aeb1d22525491312e31adb767d8d9cb18def1fd4214db7402",
+      "tfm": "net10.0",
+      "mode": "trim",
+      "rid": "osx-arm64",
+      "binary": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/trim-net10.0/app/Consumer",
+      "binarySha256": "242a3cc6b9b9d5626f7e24baa5ab5f61e0a4bddee5e994b1b987aa40bdd175cb",
+      "foundationAssemblySha256": "96c663ff53ac36c1a19ee3e4adf52d959bc4466a7d4f847a98f5efe978f9aa03",
+      "stdout": "FOUNDATION_CHANGE_CONSUMER_OK A=1 B=3 D=0 preserved=1 joint=1 rejected=1 retired=1 abort=1\nMANAGED_RUNTIME_CONSUMER_OK net10.0\n",
+      "reflectionJsonDefault": false
+    },
+    "aot-net8.0": {
+      "passed": true,
+      "consumerSha256": "320122b4e4c9bf7aeb1d22525491312e31adb767d8d9cb18def1fd4214db7402",
+      "tfm": "net8.0",
+      "mode": "aot",
+      "rid": "osx-arm64",
+      "binary": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net8.0/app/Consumer",
+      "binarySha256": "5c0746e602e3a3e3f85fbc0e418540d8052350a0b6ead6d11211a7f4cf9bdc49",
+      "foundationAssemblySha256": "5c096531b17df8c7f295cae84f03d303e39ba50438efb5659751e337b6e9ac75",
+      "stdout": "FOUNDATION_CHANGE_CONSUMER_OK A=1 B=3 D=0 preserved=1 joint=1 rejected=1 retired=1 abort=1\nMANAGED_RUNTIME_CONSUMER_OK net8.0\n",
+      "reflectionJsonDefault": false
+    },
+    "aot-net10.0": {
+      "passed": true,
+      "consumerSha256": "320122b4e4c9bf7aeb1d22525491312e31adb767d8d9cb18def1fd4214db7402",
+      "tfm": "net10.0",
+      "mode": "aot",
+      "rid": "osx-arm64",
+      "binary": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/aot-net10.0/app/Consumer",
+      "binarySha256": "d05e1485fa636f4d8b95cbfa982bebb507ddb786a47b0a60b34eb45167041afb",
+      "foundationAssemblySha256": "96c663ff53ac36c1a19ee3e4adf52d959bc4466a7d4f847a98f5efe978f9aa03",
+      "stdout": "FOUNDATION_CHANGE_CONSUMER_OK A=1 B=3 D=0 preserved=1 joint=1 rejected=1 retired=1 abort=1\nMANAGED_RUNTIME_CONSUMER_OK net10.0\n",
+      "reflectionJsonDefault": false
+    }
+  },
+  "packageSha256": "a52d480d1c9a58011e414bc13065d11a45a2429d78c2b8469e103654a9ed9422",
+  "packageFile": ".artifacts/reconfiguration/qualification/97c47fe3530503c2/feed/AtomUI.Foundation.1.0.2-reconfiguration.20261102.97c47fe35305.nupkg",
+  "packageAssemblies": {
+    "net8.0": "5c096531b17df8c7f295cae84f03d303e39ba50438efb5659751e337b6e9ac75",
+    "net10.0": "96c663ff53ac36c1a19ee3e4adf52d959bc4466a7d4f847a98f5efe978f9aa03"
+  },
+  "consumerSha256": "320122b4e4c9bf7aeb1d22525491312e31adb767d8d9cb18def1fd4214db7402",
+  "consumerProjectSha256": "a8aac21d2a7d871f86bd165e45d23f37c0d06597c73c487493f0ed63da313a9d",
+  "schemaVersion": 1,
+  "scope": "Foundation working-tree implementation; locally packed prerelease, not a publication",
+  "recordedDate": "2026-11-02",
+  "sdk": "10.0.300",
+  "runtimes": [
+    "Microsoft.AspNetCore.App 10.0.8 [/opt/homebrew/Cellar/dotnet/10.0.300/libexec/shared/Microsoft.AspNetCore.App]",
+    "Microsoft.NETCore.App 8.0.24 [/opt/homebrew/Cellar/dotnet/10.0.300/libexec/shared/Microsoft.NETCore.App]",
+    "Microsoft.NETCore.App 10.0.8 [/opt/homebrew/Cellar/dotnet/10.0.300/libexec/shared/Microsoft.NETCore.App]"
+  ],
+  "branch": "release/1.0",
+  "sourceInputs": [
+    {
+      "path": "Directory.Build.props",
+      "sha256": "234e81c50fa0e297c557dfe94a5585e09845ebb66427592fcb31083c85966863"
+    },
+    {
+      "path": "Directory.Build.targets",
+      "sha256": "915cf3a3012ac8e094413a40be4b5a5350a9aae33343cb9eb2f826ecf756c794"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "sha256": "723975506e34c27669363c19ae6a72c7da1bc95bd20f9da56eac92b5b98ccb5d"
+    },
+    {
+      "path": "build/Common.props",
+      "sha256": "b62f4f5491a253f0cdcc1271d01d1fc11caa38c5618ff2814c334fa7e372bb1c"
+    },
+    {
+      "path": "build/Output.props",
+      "sha256": "0051c80d1b6ab5b9435c8efefaaf0fb58aec682f40735e027e064e1f01b825f6"
+    },
+    {
+      "path": "build/PackageMetaInfo.props",
+      "sha256": "5a3993d39a9838aafc1e5ac22a106444eaf389c67b36a1d3cc40dddcafe435fd"
+    },
+    {
+      "path": "build/Version.props",
+      "sha256": "b335c3fd4ca16aab23ae365b04e99398a66966369232905198c6c855bbe21b06"
+    },
+    {
+      "path": "src/AtomUI.Foundation/AtomUI.Foundation.csproj",
+      "sha256": "c7678b55b1fc2ffb16498aa929663cfb95e8c1472a06536d5522d221239dd30e"
+    },
+    {
+      "path": "src/AtomUI.Foundation/FoundationAssemblyMarker.cs",
+      "sha256": "9f6f5ecfdb1717df690af78a7a09e2ae2abf929a8f89dfd1b9d04af2745836b7"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Lifetimes/LifetimeContracts.cs",
+      "sha256": "c5760a653eb0626ec45944fdcca12973d3f33f980647e8a770dc4e6a96c25e4f"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Lifetimes/LifetimeDomain.cs",
+      "sha256": "0268b8044f0ccef31af95f8129692a774d452c01c2c4470f3937987abd5d3c4f"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Lifetimes/LifetimeOwner.cs",
+      "sha256": "34ac03afc397ac3e178b0621ac3b6fcfd3a00770cff9df5f8485df781edcd8a9"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Lifetimes/LifetimeScope.cs",
+      "sha256": "3457cbf93a29d59b12bc5fc83136c7999240269e97566a073ad8e8fc9c62b53c"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Lifetimes/LifetimeSuspension.cs",
+      "sha256": "5f6eafba11f9c31417585512369131954b09b3e133692055844e483b02e62bc4"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/IModule.cs",
+      "sha256": "09298602ff97ae7fdbf5830effb2c9269ffdf315540e7a0f9b815d02a2076bdd"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/IModuleDiagnostics.cs",
+      "sha256": "a7f05ad86c2c80a09f3ffa18084e25f4c942ec23b41cfa583da4d571d0c95773"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/IModuleHostLifetime.cs",
+      "sha256": "04ce66c7984e93bad0b2eeae5e7469fe3b4cfc9ae2ad1ac8f5efca8c2e8a68ac"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/IModuleHostReconfigurationLifetime.cs",
+      "sha256": "d2f72fbc66fce0a5907acbb7289bf6404e3ca70a6b52fa582c9d669a3ba03bad"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleAttribute.cs",
+      "sha256": "968f0299d0c2be40d039f24a346668990d2d5d86dafd3d717f4d29ceec06406b"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleBase.cs",
+      "sha256": "5fd3d11127a4857701c8bdbc5e40e976f30ad20f625110817d1334f65fe3e410"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleCatalog.cs",
+      "sha256": "bef26daf96f4fcfce20770a5c26b075a1d325f6d52e7f16f7ec82afd92ca614d"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleChangeContracts.cs",
+      "sha256": "f957e7d832090fc3b8027afee50cf78aec16ca4837455edd69143ae8dde5609d"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleComposition.cs",
+      "sha256": "9b49a412d6b4818e67b03c1960e79d26d9021b17779c32af18050f64982aa621"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleDependencyDescriptor.cs",
+      "sha256": "f8696e4a5a1e9eb5c43c4156238110cde2b6c3f17ffbcb15d19144b54d23e3d6"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleDependencyGraph.cs",
+      "sha256": "9e823b9f0cd2ec5d3df553bd62716c2ea04c82d54bd6f5fe21e7af8f960247cc"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleDescriptor.cs",
+      "sha256": "17dc48c558f3b261505a7dec30627542905905cab21337400f06f8506efd1f64"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleDiagnostic.cs",
+      "sha256": "493178dd2e185366f460d28a2f30bcf807bfd73ebbf3a66d9f9a3ed9ad96f9ce"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleDiagnosticCodes.cs",
+      "sha256": "63bd5b2ce2317ca245fb349ccb35d3f3175edd774fdab84326f39c2f66ba4ddd"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleDiagnosticSeverity.cs",
+      "sha256": "7e0189a44315766767868540c36b7f6a9a612576a1522c5e1b03964d297ddf79"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleEntry.cs",
+      "sha256": "46df6c9abd9395b23d07b3c6cb9d9a8a26d506eedee1559be1547e58cf5571d1"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleGraphException.cs",
+      "sha256": "ae2c72e2bc55dc0ee1f43d034c8cf01b353f3ff65d93a0aba4dc96c14b2cd3cf"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHost.Changes.cs",
+      "sha256": "0d510d29088f14b70c43dccfa20fa3603265e54d6c2e3e8f951a8a30ef1ade7b"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHost.Coordination.cs",
+      "sha256": "3a6d567d318e9320a2fa5098cc009d9d003d1028743f62a626585a310373cc6f"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHost.Diagnostics.cs",
+      "sha256": "5af27759cbec2cec1156cdc1a2a65e88c58b2cf1d973cf8e2746f27a4396a696"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHost.Retirement.cs",
+      "sha256": "173757c30e1eedb72727f21c8ded93b0bd43b8ec98c249fe5415e7148c7d6519"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHost.Stages.cs",
+      "sha256": "1e2c958698885a6f008b2dfb9e083492542de381606f501ebd459357dd05a34e"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHost.cs",
+      "sha256": "38678c8e9f527a80df7ad998d6045a35a43318c83a02c82ef0a2854ffa544202"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHostOptions.cs",
+      "sha256": "f47388a97cdc6fbb85de1a5c14e94c8f2ff240941145cf1af9fd7f13157bbf0f"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHostOptionsBuilder.cs",
+      "sha256": "93878a1ff6c467b444c1cbda910ba4b9555830fa831d2b2ab0b765cab20765e7"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHostPhase.cs",
+      "sha256": "24ac39cc8a5a63b38271bdf9b95e684cbd59551ef68c4327ba4ac4606dc2b39f"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHostResult.cs",
+      "sha256": "094c333b0e3689b5a0e645c0a1f31175bdc127581166f4e544eb96631ad3fc3c"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHostValidationResult.cs",
+      "sha256": "75b7f405d9418d4065d45e7aa7f229cd099e8ee5ba150369d61459818d98ee31"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleHostView.cs",
+      "sha256": "8764346ae2e6ad86ca96e3bbf70f79349165b14042d611f2456069671d1012c2"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleId.cs",
+      "sha256": "db35462dd08fbf9d4b3224cd547f803010a7b9fc26ef692bd3943b0da1ce8cc8"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleInitializationContext.cs",
+      "sha256": "4e71aefdb34d7ccb79e072d9b4b3193b06c0f4e16a8f1e38fc2b1baee4de7b8d"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModulePhaseContext.cs",
+      "sha256": "44dde9f992f40013e949130ca83064d49089b05bf790e02a789d928bd39d8451"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModulePhaseExecutionOrder.cs",
+      "sha256": "a167cdc8e184fc758d665bcf958e0c5a848c58ed10aa31d22629ef47a8ae269c"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModulePhaseId.cs",
+      "sha256": "3ecdb11d654a728fd128bf025e07758f0345a6434db23f9a30889a3173d51e64"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleRegistration.cs",
+      "sha256": "dc99d5953b259b06af4c55ef9b38d2860d3eceef27ef80c3e3736ab758818194"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleResolutionResult.cs",
+      "sha256": "94165a93c220fa87956a6246e62b034249d1e3ced461e79c561ced700139af57"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleSerializedIdBoundaryAttribute.cs",
+      "sha256": "f6aa5d99f5677b990c01f55f3f1a002bc6e074d91fb2b481a0bfb872a651ac28"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleServiceCollection.cs",
+      "sha256": "462f0d1dfc1498281169900ca99cf05329fbdcb2c296a2d04a14595e082ba8ff"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleServiceConfigurationContext.cs",
+      "sha256": "077e094b5c174d4f71c62cc60b862663597a26b0b51ce3d21c3eb69332869103"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleServiceDescriptor.cs",
+      "sha256": "8a3c4a86b4386384821093fc87fd7233c1c1b461f0f9fd72bb9fc1d03d42230d"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleServiceLifetime.cs",
+      "sha256": "e5d7f062368d7634b9d8010459aaa09c3bc62abf1b8aadb9751b73e10b3728bf"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleServiceRegistry.cs",
+      "sha256": "c115f77edbeb34eabe19d9ab1b94bad9c21bc7984fdeb102a9d025e42c8d0349"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleShutdownContext.cs",
+      "sha256": "23f7f0b0870ec666e73e51cc3075cfa4e4e325b830032b6c82181aa86f202be7"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/ModuleTypeIdentity.cs",
+      "sha256": "9cf9d6eba9bd482100fdafaed2f7d3c151525a119906e60b065a85d55c9d0164"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/Services/ModuleServiceActivationContext.cs",
+      "sha256": "a0de82a01b00ecb8b8a5f846d456d48852ad64ac93e67130ac575623f49fa176"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/Services/ModuleServiceBindings.cs",
+      "sha256": "0ebeb7cc858bcc44dfa44ea62afd473419b431ad4a44c952af390d696928b99f"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/Services/ModuleServiceExceptions.cs",
+      "sha256": "212de3b652d106f40b259ce10565b02d1cc4ad98b6f4a74e689e7eb1b950bc8c"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/Services/ModuleServiceRuntime.cs",
+      "sha256": "bcb284201d6db236efa6eba9f9f433846243b6ac294e88597617931e0bd14bad"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/Services/ModuleServiceScope.cs",
+      "sha256": "a74ae46cd01877867b438fcd7b05793a9e5906955f5c604ec391bb0eecbbe223"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/Services/ModuleServiceTransition.cs",
+      "sha256": "15a899c937e73320abaa7acf90b8b620df531541decad36f350ac9c991d143d2"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/Services/ServiceRegistration.cs",
+      "sha256": "140e455a1bf334b1a4b78f62e6c13522a1b4486447c93a07f07a20899a3b84a8"
+    },
+    {
+      "path": "src/AtomUI.Foundation/Modularity/Services/ServiceRegistrationGraph.cs",
+      "sha256": "e8defbd2dd03b054ab43da835aa79be7517306111399e856317c05a88ef6efbe"
+    },
+    {
+      "path": "src/AtomUI.Foundation.Generator/AtomUI.Foundation.Generator.csproj",
+      "sha256": "99a3a7f5fc57359b78f2e4652afda128278740df375969f15ef0bb22c1b756c6"
+    },
+    {
+      "path": "src/AtomUI.Foundation.Generator/AtomUIFoundationGeneratorMarker.cs",
+      "sha256": "bdf9d14d96300e82e0404b2f1be93a107b86f0aafa62897ad81ca3611a8aa1b2"
+    },
+    {
+      "path": "src/AtomUI.Foundation.Generator/Modularity/Diagnostics/ModuleGeneratorDiagnostics.cs",
+      "sha256": "5d26ec736e63865cea6e293a31f0e3dc4b9fb7c681ec4ba6aca83047e3dc8735"
+    },
+    {
+      "path": "src/AtomUI.Foundation.Generator/Modularity/ModuleCatalogGenerator.cs",
+      "sha256": "efa8587641693753970bc90f9c132cf29a5096c5399241ef5c853d82fd01209d"
+    }
+  ],
+  "testInputs": [
+    {
+      "path": "tests/AtomUI.Foundation.Generator.Tests/GeneratorTestHost.cs",
+      "sha256": "8bf5193395c3de23f25872909cd26e2d29365b636adf3f6135a06fa542d59012"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Generator.Tests/ModuleCatalogGeneratorRegressionTests.cs",
+      "sha256": "00f0cdeced9723afaf89b0d37e55687427b92e4e999a1fa66ee2dc07c2c6dd45"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Generator.Tests/ModuleCatalogGeneratorTests.cs",
+      "sha256": "2194351e869675e132e6ba925d157f23c8395c6eea2c2874d0410d6927fa4f41"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/FoundationAssemblyMarkerTests.cs",
+      "sha256": "e85f659e13b7620df8906055bdb417300cd67e628c3090243e49a875b7f0294b"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Lifetimes/LifetimeRetentionTests.cs",
+      "sha256": "17b198b3c1da258170e627395694d1146b3cafb5e94e21683a2d00066093ca4b"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Lifetimes/LifetimeSuspensionTests.cs",
+      "sha256": "1b9648fef59f1429eade612fdcb4834e738a3f97b10b97362401296a1d9cf0cf"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Lifetimes/LifetimeTests.cs",
+      "sha256": "21b7c019cafd3bc975711fb6695bd8f15a696754ddd4f2b311253452332b4222"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleGraphDiagnosticsTests.cs",
+      "sha256": "03f238fbeada3056fb717077382e6e7b69d724ab9dfdda619ceae3bceb439169"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleHostChangeTests.cs",
+      "sha256": "17e0e4a00b5748ce521ab8eb4ce4df1d7ffbcace729d603a935c3593bd963be8"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleHostChangeTransactionTests.cs",
+      "sha256": "e7011ea75b4aeaae5a672063e3c9f96548cc833b2a89871fa0f80dac83f1e485"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleHostContractTests.cs",
+      "sha256": "69ad15e3787fdfab379667d095ae316d090908e818ffd227ecb5578818a8fe5e"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleHostCoordinationTests.cs",
+      "sha256": "6cff5431f2fa0c91cde2605eec6d52c30bd5e63fbea25bbe451ac9b38806c881"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleHostLifetimeTests.cs",
+      "sha256": "f1c6a650959901173bd3e6e04f57240b03c72d2968623493f3a416ab8e456666"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleHostManagedChangeTests.cs",
+      "sha256": "d75b0f369f5f3e92b6ad7e59b776362ff7c22b1ca33cc4a595532e55b6c3b28f"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleHostStageTests.cs",
+      "sha256": "5f2acfb54bcc4da58d42ebbaa66ea8e3f04483f5545d169c67aa887b0a1c32f7"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleIdTests.cs",
+      "sha256": "bd85c4c82b6b7a47c9b952dc74f82811699673b62743daaf79179ca8cd9f0aec"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Modularity/ModuleNeutralServiceTests.cs",
+      "sha256": "ba5be59547ca2c8f61f173d13bd812141caf057b858d2e5417f6d348578cfdb9"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Services/ModuleServiceBindingTests.cs",
+      "sha256": "a28a6ec115d576a74a022b70a72af7e369b377ba746ee245be25e54a80fd0033"
+    },
+    {
+      "path": "tests/AtomUI.Foundation.Tests/Services/ModuleServiceRuntimeTests.cs",
+      "sha256": "9f2df71373e4284c61cbf4e4bec0e4463072398fe3aef2546581182a08cb72ec"
+    },
+    {
+      "path": "tests/fixtures/managed-runtime-consumer/Program.cs",
+      "sha256": "320122b4e4c9bf7aeb1d22525491312e31adb767d8d9cb18def1fd4214db7402"
+    }
+  ],
+  "nativeLinkerWarnings": [
+    {
+      "command": "aot-net8.0-publish",
+      "warning": "ld: warning: -ld_classic is deprecated and will be removed in a future release"
+    },
+    {
+      "command": "aot-net10.0-publish",
+      "warning": "ld: warning: building for macOS-12.0, but linking with dylib '/opt/homebrew/opt/openssl@3/lib/libssl.3.dylib' which was built for newer version 26.0"
+    },
+    {
+      "command": "aot-net10.0-publish",
+      "warning": "ld: warning: building for macOS-12.0, but linking with dylib '/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib' which was built for newer version 26.0"
+    },
+    {
+      "command": "aot-net10.0-publish",
+      "warning": "ld: warning: building for macOS-12.0, but linking with dylib '/opt/homebrew/opt/brotli/lib/libbrotlienc.1.dylib' which was built for newer version 26.0"
+    },
+    {
+      "command": "aot-net10.0-publish",
+      "warning": "ld: warning: building for macOS-12.0, but linking with dylib '/opt/homebrew/opt/brotli/lib/libbrotlidec.1.dylib' which was built for newer version 26.0"
+    },
+    {
+      "command": "aot-net10.0-publish",
+      "warning": "ld: warning: building for macOS-12.0, but linking with dylib '/opt/homebrew/opt/brotli/lib/libbrotlicommon.1.dylib' which was built for newer version 26.0"
+    }
+  ],
+  "validation": {
+    "releaseBuild": {
+      "command": [
+        "dotnet",
+        "build",
+        "AtomUI.Foundation.slnx",
+        "-c",
+        "Release",
+        "--no-restore"
+      ],
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0,
+      "targetFrameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    "runtime": {
+      "command": [
+        "dotnet",
+        "test",
+        "tests/AtomUI.Foundation.Tests/AtomUI.Foundation.Tests.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0",
+        "--no-restore"
+      ],
+      "passed": 168,
+      "failed": 0,
+      "skipped": 0
+    },
+    "generator": {
+      "command": [
+        "dotnet",
+        "test",
+        "tests/AtomUI.Foundation.Generator.Tests/AtomUI.Foundation.Generator.Tests.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0",
+        "--no-build",
+        "--no-restore"
+      ],
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "review": {
+    "report": ".artifacts/reconfiguration/final-review.md",
+    "importantFindings": 2,
+    "resolvedFindings": 2,
+    "regressions": {
+      "R1": [
+        "Transition_receipt_waits_for_already_retiring_scope_reader",
+        "Transition_receipt_includes_already_failed_scope_owner",
+        "Transition_suspends_active_dependency_with_already_retiring_consumer"
+      ],
+      "R2": [
+        "Final_shutdown_can_dispatch_consumer_that_returns_another_modules_view_lease",
+        "Required_dependency_shutdown_waits_for_the_consumers_async_callback_exit"
+      ]
+    },
+    "additionalOwnershipRegressions": [
+      "Candidate_domain_abort_can_wait_for_its_private_service_scope_to_release",
+      "Replacing_neutral_domain_binding_does_not_retain_its_superseded_value",
+      "Removing_neutral_override_restores_surviving_contribution_without_replaying_module"
+    ]
+  },
+  "boundaries": {
+    "nativeHost": "macOS osx-arm64 only",
+    "coreJointConsumer": "not run; actual LuminEditor integration remains unqualified",
+    "otherPlatforms": "not run",
+    "earlierMacOSVersions": "not qualified; native10 Homebrew libraries were built for macOS26, and only this macOS26.6.2 host executed the binaries",
+    "nugetPublication": "not performed",
+    "gitBranchOrWorktreeCreation": "not performed",
+    "gitCommit": "not performed"
+  },
+  "nativeToolchain": {
+    "net10HomebrewLibrarySearch": "LIBRARY_PATH=/opt/homebrew/opt/openssl@3/lib:/opt/homebrew/lib",
+    "changes": "per-process environment only; existing libraries; no SDK/product change",
+    "initialLinkFailure": ".artifacts/reconfiguration/qualification/cf5dfab209477121/aot-net10.0-publish.log"
+  },
+  "logs": {
+    "archive": "module-reconfiguration-20261102-logs-53f7ddcc0a78bc75.gz",
+    "sha256": "53f7ddcc0a78bc75f271c8efcff4725a6efec4d2ea51b34d7102976d5926e639",
+    "uncompressedSha256": "589ec9d82f7b46fb2ac0cafb373a217e48faddb707feb1e32493f25415d96a3f",
+    "entries": 44
+  },
+  "qualificationCorrection": {
+    "supersededBy": "module-reconfiguration-20261103-local-1.0.3.json",
+    "issue": "Published domain state holding ModuleHostLease could not reach CompletePreviousAsync because module drain was awaited first",
+    "status": "Original narrower test/consumer results retained; they did not cover this blocker and cannot close complete retirement or downstream Core qualification"
+  }
+}

@@ -51,6 +51,20 @@ scope 是通用拥有/工作分组，不默认提供父子容器继承解析。�
 
 Core 将 Composition、Model、View、Attach 映射到这些分组，Foundation 不内置领域名称。两个消费者共享同一 owner 的合同见[受管生命周期](managed-lifetimes.md#scope-关联与外部所有者)。
 
+## 动态重配边界
+
+本节是 1.0.3 [模块动态重配事务](module-reconfiguration.md)的服务合同。已发布 1.0.2 的中立集合和受管 Runtime 冻结后均不接受登记变更；其 Replace/Remove、scope 退休和 `ShareFrom` 不提供候选服务代次协议。
+
+重配在独立候选登记上收集服务声明并冻结校验，不解冻或修改当前代。每项候选绑定可追踪其模块来源、绑定身份和实际 owner；替换需显式声明，不能仅因服务类型相同就覆盖正在服务的实例。缺失、循环、寿命捕获及领域需求按实际可知阶段验证，无效静态模块图仍先于任何业务 factory 拒绝。
+
+跨代复用必须同时保留合法 scope、原实例和唯一释放 owner。未受影响 Singleton 继续是该 Host/runtime 根下的原实例；Scoped 共享沿用原分组和借用关系。替换绑定的新旧实例可在退休期间并存，缓存须能区分绑定身份，不得把旧类型缓存误当作新代实例，也不按代次无差别重建全部 Singleton。
+
+候选私有新增绑定不向当前请求公开；候选仅借用稳定旧服务，撤销不释放其原 owner，清理失败仍保留真实借用。发布后新准入解析新代，原代请求和结果 reader 继续经原 lease 使用旧对象。跨模块、服务和领域的一致读取使用共同视图，不能各自更新当前指针。
+
+中立登记记录贡献模块来源，用于从旧冻结配置派生候选而不重放保留模块。不同贡献方被遮蔽的登记保持可恢复；同一贡献方、同一服务键已被覆盖的历史操作则压缩，避免新代继续保留已经被替换的调用方对象。Clear 只保留该贡献方最新的清除边界，不改变公开覆盖/移除语义。
+
+中立 instance 的调用方所有权、裸 Getter 的既有语义、同代中立覆盖规则和受管重复登记拒绝规则继续有效。严格动态重配的外部容器接入须证明候选隔离、实例保留和逐 owner 退休；标准 provider/scope 的全量重建不能代替这些行为。
+
 ## 外部容器与严格资格
 
 Microsoft DI 等容器可继续服务中立描述导出。若作为严格受管路径的构造内核，必须证明它不会同时自动捕获并释放同一实例，且满足逐 owner 清理和保留依赖闭包。包装 provider、延迟整个 provider 的 Dispose 或在外层 catch 一次，均不能代替这些证明。
@@ -68,3 +82,13 @@ Runtime 提供 `Lifetimes`、`Root`、Freeze、Stop、CompleteShutdownAsync 与 
 `ModuleServiceActivationContext.GetRequiredService<T>()` 只在当前 factory 执行期间使用，且只允许已声明依赖；返回值由当前实例 owner 的真实 capture 保活。`ModuleServiceScope` 提供 `Borrow<T>()`、`CreateScope()`、`ShareFrom<T>(ModuleServiceScope source)`、`BeginRetirement()` 和 IAsyncDisposable。共享接入保留原实例，通过目标 scope 的真实关系持有原 owner，不转移释放权。
 
 配置中每种受管服务类型只允许一个登记，重复 Add 明确拒绝；这不改变旧中立集合的覆盖语义。factory context 还限于当前同步 factory 线程，不能将它移交线程或在返回后继续解析。新运行时通过 `ModuleServiceValidationException.Diagnostics` 报告配置错误，通过 `ModuleServiceShutdownException.Diagnostics` 报告异步 Dispose 的最终清理错误。
+
+## 动态绑定公开接线
+
+动态重配实现增加 `ModuleServiceRuntime.Bindings` 和 `CreateCandidate(ModuleServiceBindings baseline, IEnumerable<ModuleId> removedModules)`。`ModuleServiceBindings` 提供与 Runtime 同签名的三个 typed factory 登记方法、`Freeze()`、`Root` 和 `BindScope(ModuleServiceScope)`；模块配置上下文的 `ManagedServices` 指向本次装配的绑定集。初始旧登记入口仍配置初始绑定；候选只登记新增或明确替换的模块，沿用未受影响登记的绑定身份。
+
+`PrepareTransition(previous, next)` 返回 `ModuleServiceTransition`，其 `AffectedModules` 包括实际服务捕获与共享 scope 效果。未激活的保留服务若仍绑定被替换的依赖，也在提交前拒绝，不能等到首次请求才失败。factory 的依赖在 Freeze 时绑定到精确登记身份，不通过历史整代配置链或服务类型重新选择。
+
+Transition 的 `Stop()`、`CompleteRetirement()` 与 `Dispose()` 分别执行不可逆通知、最终释放推进及提交前恢复；公开 `Retirement` 在 Stop 建立后返回真实票据。绑定集自身的同名 Stop/Complete 方法及 `BeginRetirement()` 用于撤销候选拥有的新对象和私有 scope；旧共享 owner 不被再次接管。候选新服务不能提前共享进当前 scope；成功发布后的共享则使用 Runtime 当前组合视图中的真实绑定判断。
+
+已绑定 Runtime 的当前 `Bindings`/`Root` 从唯一 Host 组合视图取得，不维护第二个发布指针。旧、新绑定共用原 Runtime 的寿命域，cache 以登记身份区分；成功 Release 后清除相应缓存，保留失败对象及实际依赖。具体公开协议仍须通过包消费者验证后才取得交付资格。

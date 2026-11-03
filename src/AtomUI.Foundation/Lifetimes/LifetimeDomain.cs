@@ -21,6 +21,12 @@ public sealed class LifetimeDomain : IAsyncDisposable
     private LifetimeRetirement? _retirement;
     private bool _progressing;
     private bool _progressRequested;
+    [ThreadStatic] private static int _stopCallbackDepth;
+
+    internal LifetimeRetirement? CurrentRetirement
+    {
+        get { lock (Gate) return _retirement; }
+    }
 
     public LifetimeScope CreateScope()
     {
@@ -127,7 +133,8 @@ public sealed class LifetimeDomain : IAsyncDisposable
         lock (Gate)
         {
             if (dependency.LifetimeDomain != this) throw new InvalidOperationException("Captures require the same lifetime domain.");
-            if (consumer.CurrentState != LifetimeOwnerState.Active || dependency.CurrentState != LifetimeOwnerState.Active || dependency.Constructing)
+            if (consumer.CurrentState != LifetimeOwnerState.Active || dependency.CurrentState != LifetimeOwnerState.Active ||
+                consumer.Suspensions != 0 || dependency.Suspensions != 0 || dependency.Constructing)
                 throw new InvalidOperationException("Retiring owners do not admit new captures.");
             if (ReachesUnsafe(consumer, dependency)) throw new InvalidOperationException("The capture would create a release cycle.");
             var capture = new LifetimeCapture(consumer, dependency);
@@ -192,11 +199,145 @@ public sealed class LifetimeDomain : IAsyncDisposable
     {
         lock (Gate)
         {
-            if (owner.CurrentState != LifetimeOwnerState.Active || owner.Constructing)
+            if (owner.CurrentState != LifetimeOwnerState.Active || owner.Suspensions != 0 || owner.Constructing)
                 throw new InvalidOperationException("The lifetime owner does not admit new readers.");
             owner.Readers++;
             return new LifetimeLease<T>(owner);
         }
+    }
+
+    public LifetimeSuspension Suspend(IEnumerable<LifetimeOwner> owners)
+    {
+        ArgumentNullException.ThrowIfNull(owners);
+        var requested = owners.ToArray();
+        lock (Gate)
+        {
+            if (requested.Any(owner => owner is null || owner.LifetimeDomain != this))
+                throw new InvalidOperationException("Suspension requires owners from the same lifetime domain.");
+            if (requested.Any(owner => owner.CurrentState != LifetimeOwnerState.Active))
+                throw new InvalidOperationException("Only active owners can be suspension seeds.");
+            var affected = ConsumerClosureUnsafe(requested);
+            var members = _owners.Where(affected.Contains).ToArray();
+            if (members.Length != affected.Count)
+                throw new InvalidOperationException("Suspension requires tracked lifetime owners.");
+            foreach (var owner in members) owner.Suspensions++;
+            return new LifetimeSuspension(this, members);
+        }
+    }
+
+    internal void Resume(LifetimeSuspension suspension)
+    {
+        lock (Gate)
+        {
+            if (suspension.Stopped || suspension.Disposed) return;
+            suspension.Disposed = true;
+            foreach (var owner in suspension.Members) owner.Suspensions--;
+        }
+    }
+
+    internal void Stop(LifetimeSuspension suspension)
+    {
+        List<LifetimeOwner> notifications;
+        lock (Gate)
+        {
+            if (suspension.Stopped)
+            {
+                // A callback must never wait for a dispatch that may depend on its return.
+                while (!suspension.NotificationsComplete && _stopCallbackDepth == 0)
+                    Monitor.Wait(Gate);
+                return;
+            }
+            ObjectDisposedException.ThrowIf(suspension.Disposed, suspension);
+            suspension.Stopped = true;
+            foreach (var owner in suspension.Members)
+            {
+                owner.Suspensions--;
+                owner.RetirementBarriers++;
+            }
+            suspension.Retirement = PrepareRetirementUnsafe(suspension.Members, false, out notifications, fixedMembers: true);
+        }
+        Dispatch(notifications, suspension);
+    }
+
+    internal LifetimeRetirement CompleteRetirement(LifetimeSuspension suspension)
+    {
+        Stop(suspension);
+        LifetimeRetirement retirement;
+        lock (Gate)
+        {
+            retirement = suspension.Retirement!;
+            if (!suspension.Completed)
+            {
+                suspension.Completed = true;
+                foreach (var owner in suspension.Members)
+                {
+                    owner.RetirementBarriers--;
+                    owner.ReleaseEnabled = true;
+                    QueueProgressUnsafe(owner);
+                }
+            }
+        }
+        Progress();
+        return retirement;
+    }
+
+    internal LifetimeRetirement PrepareRetirement(IEnumerable<LifetimeOwner> owners)
+    {
+        ArgumentNullException.ThrowIfNull(owners);
+        var requested = owners.ToArray();
+        lock (Gate)
+        {
+            if (requested.Any(owner => owner is null || owner.LifetimeDomain != this))
+                throw new InvalidOperationException("Retirement requires owners from the same lifetime domain.");
+            var affected = ConsumerClosureUnsafe(requested);
+            var tracked = _owners.ToHashSet();
+            var members = _owners.Where(affected.Contains).Concat(requested.Where(owner => !tracked.Contains(owner))).Distinct().ToArray();
+            foreach (var owner in members) owner.RetirementBarriers++;
+            var ticket = PrepareRetirementUnsafe(members, false, out var notifications, fixedMembers: true);
+            ticket.BatchDomain = this;
+            ticket.BatchNotifications = notifications;
+            return ticket;
+        }
+    }
+
+    internal void DispatchRetirement(LifetimeRetirement retirement)
+    {
+        ArgumentNullException.ThrowIfNull(retirement);
+        List<LifetimeOwner> notifications;
+        lock (Gate)
+        {
+            if (retirement.BatchDomain != this) throw new InvalidOperationException("The retirement does not belong to this batch domain.");
+            if (retirement.BatchDispatchStarted)
+            {
+                while (!retirement.BatchNotificationsComplete && _stopCallbackDepth == 0)
+                    Monitor.Wait(Gate);
+                return;
+            }
+            retirement.BatchDispatchStarted = true;
+            notifications = retirement.BatchNotifications!;
+            retirement.BatchNotifications = null;
+        }
+        Dispatch(notifications, batch: retirement);
+    }
+
+    internal LifetimeRetirement CompleteRetirement(LifetimeRetirement retirement)
+    {
+        DispatchRetirement(retirement);
+        lock (Gate)
+        {
+            if (!retirement.BatchCompleted)
+            {
+                retirement.BatchCompleted = true;
+                foreach (var owner in retirement.Members)
+                {
+                    owner.RetirementBarriers--;
+                    owner.ReleaseEnabled = true;
+                    QueueProgressUnsafe(owner);
+                }
+            }
+        }
+        Progress();
+        return retirement;
     }
 
     public void Stop()
@@ -266,14 +407,10 @@ public sealed class LifetimeDomain : IAsyncDisposable
     }
 
     private LifetimeRetirement PrepareRetirementUnsafe(IEnumerable<LifetimeOwner> owners, bool release,
-        out List<LifetimeOwner> notifications)
+        out List<LifetimeOwner> notifications, bool fixedMembers = false)
     {
-        var affected = new HashSet<LifetimeOwner>(owners);
-        var pending = new Queue<LifetimeOwner>(affected);
-        while (pending.TryDequeue(out var current))
-            foreach (var capture in current.Consumers)
-                if (affected.Add(capture.Consumer)) pending.Enqueue(capture.Consumer);
-        var members = _owners.Where(affected.Contains).ToArray();
+        var affected = fixedMembers ? new HashSet<LifetimeOwner>(owners) : ConsumerClosureUnsafe(owners);
+        var members = fixedMembers ? owners.ToArray() : _owners.Where(affected.Contains).ToArray();
         notifications = [];
         foreach (var owner in members)
         {
@@ -300,17 +437,38 @@ public sealed class LifetimeDomain : IAsyncDisposable
         return retirement;
     }
 
-    private void Dispatch(List<LifetimeOwner> notifications)
+    private static HashSet<LifetimeOwner> ConsumerClosureUnsafe(IEnumerable<LifetimeOwner> owners)
+    {
+        var affected = new HashSet<LifetimeOwner>(owners);
+        var pending = new Queue<LifetimeOwner>(affected);
+        while (pending.TryDequeue(out var current))
+            foreach (var capture in current.Consumers)
+                if (affected.Add(capture.Consumer)) pending.Enqueue(capture.Consumer);
+        return affected;
+    }
+
+    private void Dispatch(List<LifetimeOwner> notifications, LifetimeSuspension? suspension = null, LifetimeRetirement? batch = null)
     {
         foreach (var owner in notifications)
         {
-            try { owner.InvokeStop(); }
+            try
+            {
+                _stopCallbackDepth++;
+                owner.InvokeStop();
+            }
             catch (Exception exception)
             {
                 lock (Gate) RecordFailureUnsafe(owner, "Stop", exception);
             }
+            finally { _stopCallbackDepth--; }
         }
-        lock (Gate) _notificationBatches--;
+        lock (Gate)
+        {
+            _notificationBatches--;
+            if (suspension is not null) suspension.NotificationsComplete = true;
+            if (batch is not null) batch.BatchNotificationsComplete = true;
+            if (suspension is not null || batch is not null) Monitor.PulseAll(Gate);
+        }
         Progress();
     }
 
@@ -343,7 +501,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
                     _queuedOwners.Remove(owner);
                     UpdateRetirementFinalStateUnsafe(owner);
                     if ((_stopped && !_releaseEnabled) || owner.CurrentState != LifetimeOwnerState.Retiring ||
-                        !owner.ReleaseEnabled || owner.Readers != 0 || owner.Constructing || owner.Consumers.Count != 0 ||
+                        !owner.ReleaseEnabled || owner.RetirementBarriers != 0 || owner.Readers != 0 || owner.Constructing || owner.Consumers.Count != 0 ||
                         owner.Prerequisites.Any(prerequisite => prerequisite.CurrentState != LifetimeOwnerState.Released)) continue;
                     owner.CurrentState = LifetimeOwnerState.Releasing;
                     ready.Add(owner);
@@ -393,7 +551,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
         lock (Gate)
         {
             // Another release can reenter Stop after this owner was selected but before it starts.
-            if (_notificationBatches != 0 || (_stopped && !_releaseEnabled))
+            if (_notificationBatches != 0 || owner.RetirementBarriers != 0 || (_stopped && !_releaseEnabled))
             {
                 owner.CurrentState = owner.BlockedByFailure
                     ? LifetimeOwnerState.RetainedByFailedOwner : LifetimeOwnerState.Retiring;
@@ -483,7 +641,8 @@ public sealed class LifetimeDomain : IAsyncDisposable
 
     private void CompleteRetirementUnsafe(LifetimeRetirement retirement)
     {
-        if (retirement.PendingFinalOwners.Count != 0 || retirement.FinalCompletion.IsCompleted ||
+        if ((retirement.BatchDomain is not null && !retirement.BatchCompleted) ||
+            retirement.PendingFinalOwners.Count != 0 || retirement.FinalCompletion.IsCompleted ||
             !retirement.Completion.IsCompleted) return;
 
         var members = retirement.Members;

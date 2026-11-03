@@ -2,36 +2,65 @@ using AtomUI.Lifetimes;
 
 namespace AtomUI.Modularity.Services;
 
-public sealed class ModuleServiceRuntime : IModuleHostLifetime, IAsyncDisposable
+public sealed class ModuleServiceRuntime : IModuleHostReconfigurationLifetime, IAsyncDisposable
 {
-    private readonly object _gate = new();
-    private readonly Dictionary<Type, ServiceRegistration> _registrations = [];
-    private bool _frozen;
+    internal readonly object Gate = new();
+    private ModuleServiceBindings? _initialBindings;
+    private Func<ModuleServiceBindings>? _current;
+    private ModuleHost? _host;
+    internal readonly Dictionary<LifetimeOwner, ModuleServiceScope.ScopeState> ScopeLinks = [];
+    internal readonly List<LifetimeRetirement> CandidateRetirements = [];
+    internal LifetimeRetirement? ShutdownRetirement;
 
     public LifetimeDomain Lifetimes { get; } = new();
-    public ModuleServiceScope Root { get; }
+    public ModuleServiceRuntime ServiceRuntime => this;
+    public ModuleServiceBindings Bindings => _current?.Invoke() ?? _initialBindings!;
+    internal ModuleServiceBindings InitialBindings => _initialBindings ?? throw new InvalidOperationException("Managed service registrations are frozen.");
+    public ModuleServiceScope Root => Bindings.Root;
 
-    public ModuleServiceRuntime() => Root = new(this, Lifetimes.CreateScope(), isRoot: true);
+    public ModuleServiceRuntime() => _initialBindings = new ModuleServiceBindings(this);
+
+    internal void AttachHost(ModuleHost host, Func<ModuleServiceBindings> current)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(current);
+        lock (Gate)
+        {
+            if (_host is not null && !ReferenceEquals(_host, host))
+                throw new InvalidOperationException("The service runtime is already attached to a host.");
+            if (_host is null) { _host = host; _current = current; }
+        }
+    }
+
+    public ModuleServiceBindings CreateCandidate(ModuleServiceBindings baseline, IEnumerable<ModuleId> removedModules)
+    {
+        ArgumentNullException.ThrowIfNull(baseline);
+        ArgumentNullException.ThrowIfNull(removedModules);
+        if (!ReferenceEquals(baseline.Runtime, this)) throw new ArgumentException("Bindings belong to another runtime.", nameof(baseline));
+        return new ModuleServiceBindings(baseline, removedModules.ToHashSet());
+    }
+
+    public ModuleServiceTransition PrepareTransition(ModuleServiceBindings previous, ModuleServiceBindings next) => new(this, previous, next);
 
     public void AddSingletonFactory<T>(ModuleId owner, Func<ModuleServiceActivationContext, T> factory,
         Func<T, ValueTask> release, Action<T>? stop = null, params Type[] dependencies) where T : class =>
-        Register(owner, ModuleServiceLifetime.Singleton, factory, release, stop, dependencies);
+        InitialBindings.AddSingletonFactory(owner, factory, release, stop, dependencies);
 
     public void AddScopedFactory<T>(ModuleId owner, Func<ModuleServiceActivationContext, T> factory,
         Func<T, ValueTask> release, Action<T>? stop = null, params Type[] dependencies) where T : class =>
-        Register(owner, ModuleServiceLifetime.Scoped, factory, release, stop, dependencies);
+        InitialBindings.AddScopedFactory(owner, factory, release, stop, dependencies);
 
     public void AddTransientFactory<T>(ModuleId owner, Func<ModuleServiceActivationContext, T> factory,
         Func<T, ValueTask> release, Action<T>? stop = null, params Type[] dependencies) where T : class =>
-        Register(owner, ModuleServiceLifetime.Transient, factory, release, stop, dependencies);
+        InitialBindings.AddTransientFactory(owner, factory, release, stop, dependencies);
 
     public void Freeze()
     {
-        lock (_gate)
+        lock (Gate)
         {
-            if (_frozen) return;
-            ServiceRegistrationGraph.Validate(_registrations);
-            _frozen = true;
+            if (_initialBindings is null) return;
+            _initialBindings.Freeze();
+            if (_current is not null) _initialBindings = null;
         }
     }
 
@@ -39,13 +68,24 @@ public sealed class ModuleServiceRuntime : IModuleHostLifetime, IAsyncDisposable
 
     public async ValueTask<ModuleHostResult> CompleteShutdownAsync()
     {
-        var result = await Lifetimes.CompleteRetirement().FinalCompletion.ConfigureAwait(false);
-        var diagnostics = result.Failures.Select(failure => new ModuleDiagnostic(
+        Lifetimes.Stop();
+        LifetimeRetirement[] candidates;
+        lock (Gate)
+        {
+            ShutdownRetirement ??= Lifetimes.CurrentRetirement!;
+            candidates = CandidateRetirements.ToArray();
+        }
+        foreach (var candidate in candidates) Lifetimes.CompleteRetirement(candidate);
+        var global = Lifetimes.CompleteRetirement();
+        var results = await Task.WhenAll(candidates.Append(global).Select(ticket => ticket.FinalCompletion)).ConfigureAwait(false);
+        var failures = results.SelectMany(result => result.Failures).Distinct().ToArray();
+        var owners = results.SelectMany(result => result.Owners).GroupBy(owner => owner.Id).Select(group => group.Last()).ToArray();
+        var diagnostics = failures.Select(failure => new ModuleDiagnostic(
             ModuleServiceDiagnosticCodes.CleanupFailed, failure.Exception.Message, failure.ModuleId,
             stage: failure.Stage, exceptionType: failure.Exception.GetType().FullName,
             context: new Dictionary<string, string> { ["ownerId"] = failure.OwnerId.ToString(System.Globalization.CultureInfo.InvariantCulture) })).ToList();
-        var failedOwnerIds = result.Failures.Select(failure => failure.OwnerId).ToHashSet();
-        diagnostics.AddRange(result.Owners
+        var failedOwnerIds = failures.Select(failure => failure.OwnerId).ToHashSet();
+        diagnostics.AddRange(owners
             .Where(owner => owner.State == LifetimeOwnerState.RetainedByFailedOwner && !failedOwnerIds.Contains(owner.Id))
             .Select(owner => new ModuleDiagnostic(
                 ModuleServiceDiagnosticCodes.OwnerRetainedAfterCleanupFailure,
@@ -68,32 +108,4 @@ public sealed class ModuleServiceRuntime : IModuleHostLifetime, IAsyncDisposable
         if (!result.IsSuccess) throw new ModuleServiceShutdownException(result.Diagnostics);
     }
 
-    internal ServiceRegistration GetRegistration(Type serviceType)
-    {
-        lock (_gate)
-        {
-            if (!_frozen) throw new InvalidOperationException("Managed service registrations are not frozen.");
-            return _registrations.TryGetValue(serviceType, out var registration)
-                ? registration : throw new InvalidOperationException($"Managed service '{serviceType.FullName}' is not registered.");
-        }
-    }
-
-    private void Register<T>(ModuleId owner, ModuleServiceLifetime lifetime,
-        Func<ModuleServiceActivationContext, T> factory, Func<T, ValueTask> release,
-        Action<T>? stop, Type[] dependencies) where T : class
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-        ArgumentNullException.ThrowIfNull(release);
-        ArgumentNullException.ThrowIfNull(dependencies);
-        if (string.IsNullOrWhiteSpace(owner.Value)) throw new ArgumentException("A valid module owner is required.", nameof(owner));
-        if (dependencies.Any(type => type is null || type.ContainsGenericParameters || type.IsByRef || type.IsPointer))
-            throw new ArgumentException("Dependencies must be closed service types.", nameof(dependencies));
-        var registration = new ServiceRegistration<T>(owner, lifetime, factory, release, stop, dependencies.Distinct().ToArray());
-        lock (_gate)
-        {
-            if (_frozen) throw new InvalidOperationException("Managed service registrations are frozen.");
-            if (!_registrations.TryAdd(typeof(T), registration))
-                throw new InvalidOperationException($"Managed service '{typeof(T).FullName}' already has a registration.");
-        }
-    }
 }

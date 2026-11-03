@@ -1,6 +1,6 @@
 # AtomUI.Foundation 架构总览
 
-AtomUI.Foundation 为 AtomUI 生态提供模块身份、Required 依赖解析、模块宿主、中立服务描述与源码生成。正式架构在这一基础上增加显式启用的受管生命周期，使服务借用、共享 owner、退休和清理具有统一合同。
+AtomUI.Foundation 为 AtomUI 生态提供模块身份、Required 依赖解析、模块宿主、中立服务描述与源码生成。正式架构在这一基础上增加显式启用的受管生命周期与同一 Host 模块动态重配事务，使服务借用、退休与领域联合提交具有明确边界。工作区实现与已发布版本分别记账。
 
 本目录的非日期设计分册是架构权威。日期方案、评估和审计保存决策依据与当时的实现证据；发生冲突时，以正式设计分册为准。
 
@@ -9,6 +9,7 @@ AtomUI.Foundation 为 AtomUI 生态提供模块身份、Required 依赖解析、
 | 文档 | 权威范围 |
 | --- | --- |
 | [模块系统与宿主](modularity.md) | 身份、依赖图、显式启用、阶段、取消、回滚与关闭 |
+| [模块动态重配事务](module-reconfiguration.md) | 候选隔离、基线校验、联合提交、准入恢复及局部退休；1.0.3 实现；产品接入另行验收 |
 | [服务登记与运行时接线](service-registration.md) | 中立描述兼容、外部容器、显式受管激活、typed factory 与所有权交接 |
 | [受管生命周期](managed-lifetimes.md) | 实例 owner、真实 lease、scope 关联、退休屏障与失败保留 |
 | [源码生成](source-generation.md) | 模块发现、可生成类型、诊断、属性桥接与跨程序集导出 |
@@ -28,9 +29,11 @@ AtomUI.Foundation 为 AtomUI 生态提供模块身份、Required 依赖解析、
 | 显式受管服务与生命周期 | 尚未实现 | typed factory、唯一 owner、真实 lease、scope 关联、退休屏障和失败保留已实现；net8/net10 包消费、trim 与 macOS arm64 Native AOT 本机验证通过 | 保持显式启用及唯一释放权威；跨平台与产品接入仍待验证 |
 | 模块目录生成器 | 已实现常规路径 | partial/类型形状、名称引用、诊断和 ProjectReference/PackageReference 配置桥已实现；Release 测试 37/37 及六种真实消费配置通过 | 兼容既有输出并覆盖真实 SDK 配置 |
 | 验证与诊断 | 已有局部实现 | 结构化错误、失败隔离和本机包消费者验证入口已实现；Linux CI、其他平台与产品接入仍待资格确认 | 按验证合同逐级取得证据 |
-| 模块集合动态变更事务 | 尚未实现 | 未实现 | 属于单独设计范围；owner 退休不代表事务能力 |
+| 模块集合动态变更事务 | 尚未实现 | 未实现 | 1.0.3 已实现[动态重配合同](module-reconfiguration.md)，发布及真实 Core 联合接入资格另行验收 |
 
 1.0.2 的受管运行时继续位于既有 `AtomUI.Foundation` 程序集，不增加运行时 DI 依赖或独立包。具体公开签名见[服务登记与运行时接线](service-registration.md)及[受管生命周期](managed-lifetimes.md)。1.0.1 不包含这些符号。
+
+2026-11-03 本地 1.0.3 包在组合视图、候选隔离和批量退休的基础上，修正了已发布领域状态持有模块 lease 时的退休等待循环。此前 168 项测试未覆盖这一入口，不能据其通过认定完整退休资格。修正后 Release 双目标构建为 0 警告/错误，运行时 170/170、生成器 37/37；原始探针保持相同源码，在手动归还 lease 前已完成退休。同一独立包消费者的 net8/net10 JIT、裁剪及 Native AOT 均在本机 macOS arm64 实际运行。两个 1.0.3 包已推送配置的本地 NuGet 源，详细事实集中见[本地前置记录](../engineering/evidence/module-reconfiguration-20261103-local-1.0.3.json)。该本地批次不包含公开 NuGet 或发布提交；正式发布由版本工作流单独验证。真实 Core 联合接入仍未完成，不关闭对应下游阻塞或其他平台资格。
 
 ## 分层与所有权
 
@@ -49,6 +52,8 @@ flowchart TD
 模块身份、Required 图和通用 Host 只有一套。实例保活关系记录真实 owner 之间的使用，不重建另一套 Module 图。默认中立模式不创建 provider 或 owner；受管模式必须显式接线，启用后只有一个解析与释放权威。
 
 Foundation 负责通用服务实例的寿命证据。Model、View、命令、Undo、文档结果、Token、Frame 和平台资源保持消费端所有；领域票据与服务 lease 通过明确协议关联。消费端预算继续由原账本负责，Foundation 不新增预算根。
+
+动态重配沿用上述权威：Foundation 准备模块和服务，消费端准备领域配置，双方经同一次决定发布一致的组合视图。提交前可恢复的准入暂停与提交后不可逆退休分开；未受影响实例保持身份。具体顺序、失败及取消合同仅由[动态重配分册](module-reconfiguration.md)定义，不改变 1.0.2 的静态输入快照和幂等初始化行为。
 
 ## 项目边界
 

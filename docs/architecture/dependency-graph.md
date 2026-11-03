@@ -45,3 +45,9 @@ flowchart TD
 - Neutral descriptors remain exportable without activating a managed runtime. An external DI adapter must not create a second release authority for the same object.
 - Domain adapters map their scopes and results to real leases; Foundation does not copy their data models or budget ledgers.
 - New package boundaries and API signatures must be added to the canonical design before implementation. Microsoft DI is not a new mandatory runtime dependency.
+
+## Module Reconfiguration in 1.0.3
+
+The [module reconfiguration contract](module-reconfiguration.md) is implemented in 1.0.3, with local packaged-consumer evidence and separate release validation; it is absent from 1.0.2. It extends the same Host coordinator with candidate preparation, baseline validation and one publication decision for modules, service bindings and opaque domain payloads. It does not add a Host, a second Required graph, a provider authority or a package dependency.
+
+The service runtime supplies isolated candidate bindings and preserves unaffected owners. The lifetime layer supplies generic partial retirement and real completion evidence; it does not interpret domain configuration or own the current module set. A domain adapter prepares and seals its payload, participates in recoverable admission suspension, and provides real work/reader facts through the generic protocol. Commit publication does not invoke domain callbacks under the coordinator lock.

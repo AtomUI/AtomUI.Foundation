@@ -28,6 +28,31 @@
 
 生命周期并发测试使用可控制的 barrier 固定交错，不靠增加 sleep 或超时碰运气。非合作 reader 未退出时必须保持资源有效，取消等待不改变真实收尾；最终失败报告不得把保留资源标为 Released。
 
+## 动态重配事务验收
+
+本节验证[模块动态重配合同](../architecture/module-reconfiguration.md)，不将 1.0.2 已有静态 Host 或退休用例改记为动态变更通过。当前本地 1.0.3 验证见[唯一证据记录](evidence/module-reconfiguration-20261103-local-1.0.3.json)，不等于真实 Core 联合接入或公开发布资格。原始缺口场景保留已初始化 Host、A 实例、原 registrations/enable 输入及 Resolve/Initialize 调用顺序，作为静态快照与幂等兼容事实；能力用例在同一 Host 上调用新版本真实公开变更入口，不能继续用无操作调用或重建 Host 代替。
+
+| 场景 | 必须观察的结果 |
+| --- | --- |
+| 新增 B，另有未选 D | 当前 A 增量变为 A/B；A 引用不变，A/B 各构造一次，D=0；无变化请求不重放阶段 |
+| 局部停用 B | 新准入不再选择 B，独立 A 与稳定 Infrastructure 保持身份；B 最后使用者退出后 Release 一次 |
+| 图拒绝 | 缺失、重复、环及 C Required B 时显式停用 B 均在候选业务 factory 前拒绝；级联仅在显式请求时按实际闭包执行 |
+| 候选初始化失败 | barrier 后失败只清理候选实际成功项；旧 A 持续服务，不触发其全局 Shutdown |
+| 领域拒绝与候选清理失败 | Foundation 准备后领域拒绝，两侧均不发布；失败候选保留真实资源/借用，不关闭旧代合法共享服务准入 |
+| 发布一致性 | 准备、封准入及提交处暂停，并发捕获视图只得到合法 G 或 G+1；模块、服务及领域载荷无混代组合 |
+| 请求与结果 reader | 必须排空的旧工作真实退出；允许存活的旧结果持有原视图和 lease，退出前不得释放或复用其资源 |
+| 领域持有模块 lease | 先实际发布持有 B 的 ModuleHostLease 的领域 State，再停用 B；CompletePreviousAsync 在模块最终等待期间进入并归还该 lease，无需手动解除循环；全部 Stop 已分发，服务 Release 不早于模块回调结束 |
+| 实际借用影响集 | A 无 Required B 而实际捕获 B；完整影响集先封准入并收到停止通知，不在 B 回调等待未调度 A；长期捕获按合法重绑或释放合同处理 |
+| 取消与基线 | 封准入后、提交前取消可恢复旧配置并独立清理；取消与决定竞争有唯一结果，过期或外来 Host 基线不能覆盖当前代 |
+| 提交后清理异常 | 新代保留，旧失败与保留闭包可诊断；其他独立 owner 继续释放，超预算和调用方取消等待不伪报完成 |
+| 最终关闭竞争 | 分别固定决定前后交错；关闭覆盖候选、当前代和仍被持有的旧资源，重复关闭复用原票据及失败 |
+
+暂停点用 barrier 固定，计数来自真实 module/service factory、Stop、Release 和结果 owner。替换用例还须证明新旧绑定并存时不误命中旧缓存、未受影响 Singleton/Scoped 不被重建，且只有一个实际释放权威。
+
+资格按三层取得：先用仅依赖候选 Foundation 包的独立消费者，再运行 LuminEditor Core 联合消费者，最后对相同创建、请求、变更与关闭分支取得适用 JIT、trim 和 Native AOT 运行证据。Core 消费者包括独立 ProbeFeature 包、稳定 Infrastructure、闭合 Provider、真实 CompositionSingleton/ModelScoped 服务及共享 Model 的双 View，并验证领域拒绝、单一提交和文档身份保持。禁止源码链接、InternalsVisibleTo 或另建 Host 绕过公开边界。
+
+记录候选包版本与内容哈希、消费者源码提交、依赖和完整调用、生成指纹、命令/TFM/RID/机器、构造/停止/释放计数、代次及实例身份、旧租约状态、退出码与日志。详细证据保存到一个权威批次记录，状态表仅链接；publish-only、局部静态 AOT 冒烟和本机结果均不能扩写成其他路径或平台资格。无反射执行路径与 JIT 消费者关闭默认反射 JSON 的要求也须按真实调用验证。
+
 ## 生成器与配置矩阵
 
 覆盖单个/多个 partial、其他 partial 特性、别名、可访问嵌套类、泛型外层、file-local、required、无模块输入、命名遮蔽和精确错误位置。每个合法场景检查更新后编译，无效场景检查有针对性的诊断及无错误工厂输出。

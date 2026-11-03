@@ -105,13 +105,29 @@ scope 归属、关闭影响和服务解析共享是分开的关系。显式关�
 
 受管实例不能同时由 Foundation owner 和外部 DI 自动释放。外部容器只有在证明构造、保活、逐 owner 清理及失败保留均符合本设计时才取得严格接入资格；标准 scope Dispose 的异常聚合包装不构成这种证明。
 
-受管 owner 退休和注册撤销不等于完整模块集合热更新。候选 Prepare/Commit、代次原子发布及未受影响实例保持身份需要独立的模块变更事务设计，不能通过重建整个 Host 冒充。
+受管 owner 退休和注册撤销不等于完整模块集合热更新。候选隔离、联合提交及未受影响实例保持身份由 1.0.3 [模块动态重配事务](module-reconfiguration.md)定义，不能通过重建整个 Host 冒充。
+
+## 动态重配与局部退休
+
+现有 `Stop()`、`BeginRetirement()` 和 Active → Retiring 都是不可逆合同，没有重新开放 owner 的入口。提交前的可恢复准入暂停应由事务协调协议表达，保持 owner 实例和合法 lease；不得重置 owner 状态，或把已有退休票据改回未发生。提交前拒绝或取消只恢复旧配置准入，已经取消的工作不复活。
+
+成功提交后，旧影响集按本分册的两屏障协议退休。通用局部集合接线在同一域内先固定并封住完整实际使用者集合、分发全部 Stop，再开放该集合的释放推进。票据还包含已经 Retiring、CleanupFailed 或失败保留的旧 owner，不能只收集 Active 而提前报告成功。不能以整个 Domain 的 Stop 实现局部停用，也不能逐个 BeginRetirement 并在通知其他 owner 前等待其中一个的最终结果。
+
+影响集包括实际 capture、共享 scope 与领域退出关系。仍启用模块的某个服务也可能因使用被替换服务而受影响，具体保留或重绑先由候选验证。跨提交存活的结果 reader 继续保有原实例；长期 capture 的归还可在消费者 Release 中发生，不把它设为提交前必须全局归零的条件。
+
+候选和当前代共享稳定服务时，撤销只清理候选拥有的对象并归还借用。候选清理失败保留自己的对象与使用事实，不能让清理传播将当前仍合法服务的共享 owner 退休。此项隔离是新接线的验收条件，不宣称现有任意 scope/capture 组合已经满足。
+
+提交后的清理失败保留旧 owner 和依赖闭包，不回滚已经发布的新代；独立可释放项继续推进。最终 Host 关闭汇总当前代、未提交候选及所有尚未完成或失败保留的旧资源，不能因它们已不在当前模块列表中而丢失原票据或释放权威。
+
+领域完成本身也可能是模块读者归还的实际推进者。完整 Stop 之后，领域完成与模块最终等待必须并行启动；不能把领域完成排在模块等待之后。服务最终释放则继续服从模块回调屏障。1.0.3 本地修正对旧代和候选使用同一推进器，原始发布状态与真实租约回归见[权威记录](../engineering/evidence/module-reconfiguration-20261103-local-1.0.3.json)。
 
 ## 必须验证的性质
 
 结果 reader 保活、借用/关闭并发、A.Release 归还 B、失败依赖闭包、双 scope 共享、非合作读者和重复关闭均使用确定性 barrier 验证。完整矩阵及真实消费端要求见[验证合同](../engineering/verification.md)。只测计数器或仅有 Core-owned 替身不足以取得 Foundation-owned 服务资格。
 
 ## 运行时 API 合同
+
+1.0.3 动态重配实现另增 `LifetimeDomain.Suspend(IEnumerable<LifetimeOwner>)`，返回 `LifetimeSuspension`。显式种子必须 Active；其实际 capture 消费者闭包可含已在退休的 owner，恢复不会将后者重新开放。它原子暂停新增借用和捕获，保持 owner 状态与既有 lease；`Owners` 暴露固定影响集。`Dispose()` 只归还本次暂停；`Stop()` 不可逆通知整个集合但尚不放行 Release；`CompleteRetirement()` 分发停止并开放该集合退休，返回同一 `LifetimeRetirement`。`Retirement` 在 Stop 建立后可读取真实票据；同步 Stop 回调重入不等待自己，其票据的 Completion 仍提供通知屏障。重叠暂停独立计数，释放某一暂停不能重开其他暂停或已退休 owner。它不改变现有 Domain Stop 和 owner/scope 退休合同。
 
 实现位于现有 AtomUI.Foundation 程序集中，命名空间为 `AtomUI.Lifetimes`，不新增包。公开合同采用以下名称；实现状态仍以测试证据更新。
 

@@ -24,13 +24,13 @@ AtomUI.Foundation 是 AtomUI 生态的基础设施仓库，提供可被其它 At
 当前版本：
 
 ```bash
-dotnet add package AtomUI.Foundation --version 1.0.2
+dotnet add package AtomUI.Foundation --version 1.0.3
 ```
 
 如果项目需要生成模块目录，请把 generator 作为 analyzer 引入：
 
 ```xml
-<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.2" PrivateAssets="all" />
+<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.3" PrivateAssets="all" />
 ```
 
 ## Modularity
@@ -82,6 +82,8 @@ var result = await host.InitializeAsync();
 [架构总览](docs/architecture/overview.md) 是正式入口，包含[模块宿主](docs/architecture/modularity.md)、[服务登记](docs/architecture/service-registration.md)、[受管生命周期](docs/architecture/managed-lifetimes.md)和[源码生成](docs/architecture/source-generation.md)等设计分册。
 
 1.0.2 保留中立描述和调用方实例所有权，并新增可显式启用的受管服务运行时，提供 typed factory、owner-backed lease、scope 共享和协调退休。通过 `ModuleServiceRuntime` 启用受管能力；原有 descriptor 登记不会激活容器或转移所有权。已验证范围和仍待完成的跨平台/产品资格见[验证合同](docs/engineering/verification.md)。
+
+1.0.3 增加模块集合事务重配与领域联合发布。完整 Stop 通知后，领域清理和模块读者排空共同推进；受管服务 Release 仍等待模块回调结束。真实 LuminEditor Core 联合接入仍单独验收，见[模块动态重配](docs/architecture/module-reconfiguration.md)。
 
 ## 本地开发
 

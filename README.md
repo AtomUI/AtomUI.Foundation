@@ -25,13 +25,13 @@ The first release focuses on modularity:
 Current release:
 
 ```bash
-dotnet add package AtomUI.Foundation --version 1.0.2
+dotnet add package AtomUI.Foundation --version 1.0.3
 ```
 
 If your project needs generated module catalogs, reference the generator as an analyzer:
 
 ```xml
-<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.2" PrivateAssets="all" />
+<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.3" PrivateAssets="all" />
 ```
 
 ## Modularity
@@ -83,6 +83,8 @@ The 1.0.2 Generator package forwards custom catalog settings automatically for `
 The [architecture overview](docs/architecture/overview.md) indexes the canonical designs for the [module host](docs/architecture/modularity.md), [service registration](docs/architecture/service-registration.md), [managed lifetimes](docs/architecture/managed-lifetimes.md), and [source generation](docs/architecture/source-generation.md).
 
 Version 1.0.2 preserves neutral descriptors and caller-owned instances while adding an opt-in managed service runtime with typed factories, owner-backed leases, scope sharing, and coordinated retirement. Managed behavior is enabled through `ModuleServiceRuntime`; existing descriptor registration does not activate a container or transfer ownership. See [verification contracts](docs/engineering/verification.md) for the tested scope and remaining cross-platform/product qualifications.
+
+Version 1.0.3 adds transactional module reconfiguration and joint domain publication. After all Stop notifications, domain cleanup and module reader drain progress together; managed service release still waits for module callbacks. Actual LuminEditor Core integration remains a separate qualification. See [module reconfiguration](docs/architecture/module-reconfiguration.md).
 
 ## Local Development
 

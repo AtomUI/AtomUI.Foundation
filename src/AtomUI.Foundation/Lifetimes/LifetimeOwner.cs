@@ -13,6 +13,8 @@ public abstract class LifetimeOwner
 
     internal LifetimeOwnerState CurrentState;
     internal int Readers;
+    internal int Suspensions;
+    internal int RetirementBarriers;
     internal bool StopInvoked;
     internal bool ReleaseEnabled;
     internal bool Constructing;

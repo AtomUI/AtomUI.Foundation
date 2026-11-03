@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AtomUI.Lifetimes;
 using AtomUI.Modularity;
@@ -17,6 +18,8 @@ internal static class ManagedRuntimeConsumer
         await VerifySharedScopeRetirementAsync();
         await VerifyHostRetirementAsync();
         await VerifyFailedOwnerClosureAsync();
+        await VerifyModuleChangesAsync();
+        await VerifyPublishedDomainLeaseRetirementAsync();
 #if NET8_0
         Console.WriteLine("MANAGED_RUNTIME_CONSUMER_OK net8.0");
 #elif NET10_0
@@ -149,9 +152,188 @@ internal static class ManagedRuntimeConsumer
         Ensure(releaseAttempts == 1, "Repeated shutdown must not retry a failed owner.");
     }
 
+    private static async Task VerifyPublishedDomainLeaseRetirementAsync()
+    {
+        var shutdowns = 0;
+        var a = ModuleRegistration.For(ModuleDescriptor.For<ProbeModule>("A"), () => new ProbeModule(static () => { }));
+        var b = ModuleRegistration.For(ModuleDescriptor.For<LeaseModule>("B"), () => new LeaseModule(() => shutdowns++));
+        var host = new ModuleHost([a, b], new ModuleHostOptions([typeof(ProbeModule), typeof(LeaseModule)]));
+        Ensure((await host.InitializeAsync()).IsSuccess, "Domain lease host must initialize.");
+        var lease = host.AcquireView([ModuleId.FromModuleType<LeaseModule>()]);
+        var oldState = new LeaseDomainState(lease);
+        var first = await host.ChangeAsync(new ModuleChangeRequest(host.Current, [a, b],
+            new ModuleHostOptions([typeof(ProbeModule), typeof(LeaseModule)]),
+            participant: new PreparedParticipant(new PublishedLeasePreparation(oldState))));
+        Ensure(first.IsCommitted && ReferenceEquals(first.View.State, oldState), "The real old lease holder must first be published.");
+        Ensure((await first.Retirement.FinalCompletion).IsSuccess, "Initial domain publication must retire its empty predecessor.");
+        var preparation = new PublishedLeasePreparation(new ChangeState("new"), lease);
+        var result = await host.ChangeAsync(new ModuleChangeRequest(host.Current, [a],
+            new ModuleHostOptions([typeof(ProbeModule)]), participant: new PreparedParticipant(preparation)));
+        try
+        {
+            Ensure(result.IsCommitted && preparation.Stopped, "The change must commit and dispatch Stop.");
+            Ensure((await result.Retirement.FinalCompletion.WaitAsync(TimeSpan.FromSeconds(5))).IsSuccess,
+                "Domain final cleanup must run alongside the module reader drain.");
+            Ensure(preparation.CompleteEntered && shutdowns == 1, "Only domain final cleanup may return the old module lease.");
+            Console.WriteLine("DOMAIN_RETIREMENT_CONSUMER_OK published=1 complete=1 leaseReturned=1 Bshutdown=1");
+        }
+        finally
+        {
+            lease.Dispose();
+            await host.ShutdownAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+        }
+    }
+
     private static void Ensure(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private static async Task VerifyModuleChangesAsync()
+    {
+        var runtime = new ModuleServiceRuntime();
+        var aCreated = 0; var bCreated = 0; var dCreated = 0;
+        var failInitialization = false;
+        var a = ModuleRegistration.For(ModuleDescriptor.For<StableModule>("Stable"), () => { aCreated++; return new StableModule(); });
+        var b = ModuleRegistration.For(ModuleDescriptor.For<FeatureModule>("Feature"), () => { bCreated++; return new FeatureModule(failInitialization); });
+        var d = ModuleRegistration.For(ModuleDescriptor.For<UnselectedModule>("Disabled"), () => { dCreated++; return new UnselectedModule(); });
+        var host = new ModuleHost([a], new ModuleHostOptions([typeof(StableModule)]) { Lifetime = runtime });
+        Ensure((await host.InitializeAsync()).IsSuccess, "Initial change consumer host must initialize.");
+        var baseline = host.Current;
+        var originalModule = baseline.Modules.Single().Module;
+        var originalSingleton = runtime.Root.Borrow<StableService>();
+        var modelScope = runtime.Root.CreateScope();
+        var originalModel = modelScope.Borrow<Model>();
+        var added = await host.ChangeAsync(new ModuleChangeRequest(baseline, [a, b, d],
+            new ModuleHostOptions([typeof(StableModule), typeof(FeatureModule)]), participant: new ChangeParticipant("enabled")));
+        Ensure(added.Status == ModuleChangeStatus.Committed, "Adding Feature must commit on the same Host.");
+        Ensure(ReferenceEquals(originalModule, host.EnabledModules.Single(entry => entry.Module is StableModule).Module), "Stable module identity must survive.");
+        Ensure(((ChangeState)added.View.State!).Name == "enabled" && added.View.Modules.Count == 2, "Domain and module views must commit together.");
+        Ensure(added.View.Services.GetRequiredService<ChangeMetadata>().Name == "enabled", "Neutral service contributions must belong to the same published view.");
+        using (var singleton = runtime.Root.Borrow<StableService>())
+            Ensure(ReferenceEquals(originalSingleton.Value, singleton.Value), "Stable Singleton must keep its actual owner.");
+        using (var model = added.View.ManagedServices!.BindScope(modelScope).Borrow<Model>())
+            Ensure(ReferenceEquals(originalModel.Value, model.Value), "Existing Model scope must not be rebuilt.");
+
+        var oldView = host.AcquireView([ModuleId.FromModuleType<FeatureModule>()]);
+        var reader = runtime.Root.Borrow<FeatureService>();
+        var originalFeature = reader.Value;
+        var removed = await host.ChangeAsync(new ModuleChangeRequest(host.Current, [a, b, d],
+            new ModuleHostOptions([typeof(StableModule)]), participant: new ChangeParticipant("disabled")));
+        Ensure(removed.Status == ModuleChangeStatus.Committed && removed.View.Modules.Count == 1, "Feature removal must publish once.");
+        Ensure(removed.View.Services.GetRequiredService<ChangeMetadata>().Name == "disabled", "Superseded neutral contributions must be replaced privately.");
+        Ensure(originalFeature.Stops == 1 && originalFeature.Releases == 0, "Stop must preserve actual readers.");
+        Ensure(!removed.Retirement.FinalCompletion.IsCompleted && ReferenceEquals(reader.Value, originalFeature), "Old result must retain its original service.");
+        oldView.Dispose();
+        reader.Dispose();
+        Ensure((await removed.Retirement.FinalCompletion).IsSuccess && originalFeature.Releases == 1, "Final release must follow real exit.");
+        var stableView = host.Current;
+        var rejected = await host.ChangeAsync(new ModuleChangeRequest(stableView, [a, b, d],
+            new ModuleHostOptions([typeof(StableModule), typeof(FeatureModule)]), participant: new ChangeParticipant("rejected", reject: true)));
+        Ensure(rejected.Status == ModuleChangeStatus.Rejected && ReferenceEquals(stableView, host.Current), "Domain rejection must preserve the original combined view.");
+        Ensure((await rejected.Retirement.FinalCompletion).IsSuccess, "Rejected candidates must clean their real resources.");
+        failInitialization = true;
+        var aborted = await host.ChangeAsync(new ModuleChangeRequest(host.Current, [a, b, d],
+            new ModuleHostOptions([typeof(StableModule), typeof(FeatureModule)]), participant: new ChangeParticipant("scope-abort")));
+        Ensure(aborted.Status == ModuleChangeStatus.Rejected && ReferenceEquals(stableView, host.Current), "Initialization failure must preserve the old composition.");
+        Ensure((await aborted.Retirement.FinalCompletion).IsSuccess, "Domain abort must be able to await its private Foundation service scope.");
+        var stale = await host.ChangeAsync(new ModuleChangeRequest(baseline, [a], new ModuleHostOptions([typeof(StableModule)])));
+        Ensure(stale.Status == ModuleChangeStatus.StaleBaseline, "Old baselines cannot overwrite a newer view.");
+        using (var cancellation = new CancellationTokenSource())
+        {
+            cancellation.Cancel();
+            var canceled = await host.ChangeAsync(new ModuleChangeRequest(host.Current, [a], new ModuleHostOptions([typeof(StableModule)])), cancellation.Token);
+            Ensure(canceled.Status == ModuleChangeStatus.Canceled, "Precommit cancellation must not publish.");
+        }
+        Ensure(aCreated == 1 && bCreated == 3 && dCreated == 0, "Actual module factories must match committed and rejected candidates only.");
+        originalSingleton.Dispose(); originalModel.Dispose();
+        await modelScope.DisposeAsync();
+        Ensure((await host.ShutdownAsync()).IsSuccess, "The same Host must close current and all old resources.");
+        Console.WriteLine("FOUNDATION_CHANGE_CONSUMER_OK A=1 B=3 D=0 preserved=1 joint=1 rejected=1 retired=1 abort=1");
+    }
+
+    private sealed class StableModule : ModuleBase
+    {
+        public override void ConfigureServices(ModuleServiceConfigurationContext context)
+        {
+            context.ManagedServices!.AddSingletonFactory(ModuleId.FromModuleType<StableModule>(), _ => new StableService(), static _ => ValueTask.CompletedTask);
+            context.ManagedServices.AddScopedFactory(ModuleId.FromModuleType<StableModule>(), _ => new Model(), static _ => ValueTask.CompletedTask);
+        }
+    }
+    private sealed class FeatureModule(bool failInitialization) : ModuleBase
+    {
+        public override void ConfigureServices(ModuleServiceConfigurationContext context)
+        {
+            context.ManagedServices!.AddSingletonFactory(
+                ModuleId.FromModuleType<FeatureModule>(), activation => new FeatureService(activation.GetRequiredService<StableService>()),
+                value => { value.Releases++; return ValueTask.CompletedTask; }, value => value.Stops++, typeof(StableService));
+            context.ManagedServices.AddScopedFactory(ModuleId.FromModuleType<FeatureModule>(),
+                activation => new FeatureOperation(activation.GetRequiredService<FeatureService>()),
+                static _ => ValueTask.CompletedTask, dependencies: [typeof(FeatureService)]);
+        }
+        public override void Initialize(ModuleInitializationContext context)
+        {
+            if (failInitialization) throw new InvalidOperationException("private initialization failed");
+        }
+    }
+    private sealed class UnselectedModule : ModuleBase;
+    private sealed class StableService;
+    private sealed class FeatureService(StableService dependency)
+    {
+        public StableService Dependency { get; } = dependency;
+        public int Stops;
+        public int Releases;
+    }
+    private sealed record ChangeState(string Name);
+    private sealed record LeaseDomainState(ModuleHostLease Lease);
+    private sealed class PreparedParticipant(ModuleChangePreparation preparation) : IModuleChangeParticipant
+    {
+        public ValueTask<ModuleChangePreparation> PrepareAsync(ModuleChangeContext context, CancellationToken cancellationToken) => ValueTask.FromResult(preparation);
+    }
+    private sealed class PublishedLeasePreparation(object state, ModuleHostLease? previousLease = null) : ModuleChangePreparation
+    {
+        public override object State => state;
+        public bool Stopped;
+        public bool CompleteEntered;
+        public override void StopPrevious() => Stopped = true;
+        public override ValueTask<ModuleHostResult> CompletePreviousAsync()
+        {
+            CompleteEntered = true;
+            previousLease?.Dispose();
+            return ValueTask.FromResult(ModuleHostResult.Success);
+        }
+    }
+    private sealed record ChangeMetadata(string Name);
+    private sealed record FeatureOperation(FeatureService Service);
+    private sealed class ChangePreparation(string name) : ModuleChangePreparation { public override object State { get; } = new ChangeState(name); }
+    private sealed class ScopeChangePreparation(ModuleServiceScope scope) : ModuleChangePreparation
+    {
+        public override object State { get; } = new ChangeState("scope-abort");
+        public override async ValueTask AbortAsync() => await scope.DisposeAsync();
+    }
+    private sealed class ChangeParticipant(string name, bool reject = false) : IModuleChangeParticipant
+    {
+        public ValueTask ConfigureAsync(ModuleChangeContext context, CancellationToken cancellationToken)
+        {
+            context.Services.ReplaceSingleton(new ChangeMetadata(name));
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask<ModuleChangePreparation> PrepareAsync(ModuleChangeContext context, CancellationToken cancellationToken)
+        {
+            if (name == "scope-abort")
+            {
+                var scope = context.ManagedServices!.Root.CreateScope();
+                using var operation = scope.Borrow<FeatureOperation>();
+                return ValueTask.FromResult<ModuleChangePreparation>(new ScopeChangePreparation(scope));
+            }
+            if (name != "disabled")
+            {
+                using var feature = context.ManagedServices!.Root.Borrow<FeatureService>();
+                Ensure(feature.Value.Dependency is not null, "Candidate factory must capture the original stable service.");
+            }
+            if (reject) throw new InvalidOperationException("domain validation refused candidate");
+            return ValueTask.FromResult<ModuleChangePreparation>(new ChangePreparation(name));
+        }
     }
 
     private sealed class Model
@@ -162,6 +344,10 @@ internal static class ManagedRuntimeConsumer
     private sealed record Consumer(Model Model);
 
     private sealed class ProbeModule(Action shutdown) : ModuleBase
+    {
+        public override void Shutdown(ModuleShutdownContext context) => shutdown();
+    }
+    private sealed class LeaseModule(Action shutdown) : ModuleBase
     {
         public override void Shutdown(ModuleShutdownContext context) => shutdown();
     }

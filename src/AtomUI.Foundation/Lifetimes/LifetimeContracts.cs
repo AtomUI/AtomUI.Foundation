@@ -50,6 +50,11 @@ public sealed class LifetimeRetirement
     }
 
     internal LifetimeOwner[] Members { get; private set; }
+    internal LifetimeDomain? BatchDomain;
+    internal List<LifetimeOwner>? BatchNotifications;
+    internal bool BatchDispatchStarted;
+    internal bool BatchNotificationsComplete;
+    internal bool BatchCompleted;
     internal readonly HashSet<LifetimeOwner> PendingFinalOwners = [];
     internal readonly TaskCompletionSource<LifetimeCloseResult> Initial = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal readonly TaskCompletionSource<LifetimeCloseResult> Final = new(TaskCreationOptions.RunContinuationsAsynchronously);

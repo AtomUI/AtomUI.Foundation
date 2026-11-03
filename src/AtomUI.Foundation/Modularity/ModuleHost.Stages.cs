@@ -51,17 +51,9 @@ public sealed partial class ModuleHost
             if (!admission.IsSuccess) { return ValueTask.FromResult(admission); }
             cancellationToken.ThrowIfCancellationRequested();
             var registration = _registrations.First(item => item.Descriptor.Id == descriptor.Id);
-            IModule module;
-            try
-            {
-                module = InvokeCallback(registration.Factory)
-                    ?? throw new InvalidOperationException("The module factory returned null.");
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-            catch (Exception exception) { throw new ModuleLifecycleExecutionException(descriptor.Id, "CreateModule", exception); }
-
             // Transfer ownership before checking cancellation or advancing to another factory.
-            lock (_stateLock) { _enabledModules.Add(new ModuleEntry(descriptor, module)); }
+            var entry = CreateModuleEntry(descriptor, registration, cancellationToken);
+            lock (_stateLock) { Current.Composition.AddModule(entry); }
             cancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -79,18 +71,46 @@ public sealed partial class ModuleHost
         var required = RequirePhase(expectedPhase, stage);
         if (!required.IsSuccess) { return required; }
         cancellationToken.ThrowIfCancellationRequested();
-        foreach (var entry in _enabledModules)
+        var result = await ConfigureEntriesAsync(Current.Composition, _enabledModules, stage, nextPhase, action, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? CompletePhase(stage, nextPhase) : result;
+    }
+
+    private ModuleEntry CreateModuleEntry(ModuleDescriptor descriptor, ModuleRegistration registration, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var module = InvokeCallback(registration.Factory)
+                ?? throw new InvalidOperationException("The module factory returned null.");
+            lock (_stateLock)
+            {
+                if (_moduleOwnership.TryGetValue(module, out _))
+                    throw new InvalidOperationException("The module instance already belongs to this host.");
+                var entry = new ModuleEntry(descriptor, module);
+                _moduleOwnership.Add(module, entry);
+                return entry;
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception exception) { throw new ModuleLifecycleExecutionException(descriptor.Id, "CreateModule", exception); }
+    }
+
+    private async ValueTask<ModuleHostResult> ConfigureEntriesAsync(ModuleComposition composition, IEnumerable<ModuleEntry> entries,
+        string stage, ModuleHostPhase nextPhase,
+        Func<IModule, ModuleServiceConfigurationContext, CancellationToken, ValueTask> action, CancellationToken cancellationToken)
+    {
+        foreach (var entry in entries)
         {
             var admission = CheckAdmission(stage);
-            if (!admission.IsSuccess) { return admission; }
+            if (!admission.IsSuccess) return admission;
             cancellationToken.ThrowIfCancellationRequested();
-            var context = new ModuleServiceConfigurationContext(entry.Descriptor, _services);
+            var context = new ModuleServiceConfigurationContext(entry.Descriptor,
+                composition.Services.ForModule(entry.Descriptor.Id), composition.ManagedServices);
             await InvokeModuleAsync(entry, stage, () => action(entry.Module, context, cancellationToken), cancellationToken).ConfigureAwait(false);
             entry.Phase = nextPhase;
             cancellationToken.ThrowIfCancellationRequested();
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return CompletePhase(stage, nextPhase);
+        return ModuleHostResult.Success;
     }
 
     private ModuleHostResult FreezeServicesCore()
@@ -109,18 +129,24 @@ public sealed partial class ModuleHost
         var required = RequirePhase(ModuleHostPhase.ServicesFrozen, "Initialize");
         if (!required.IsSuccess) { return required; }
         cancellationToken.ThrowIfCancellationRequested();
-        foreach (var entry in _enabledModules)
+        var result = await InitializeEntriesAsync(Current.Composition, _enabledModules, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? CompletePhase("Initialize", ModuleHostPhase.Initialized) : result;
+    }
+
+    private async ValueTask<ModuleHostResult> InitializeEntriesAsync(ModuleComposition composition, IEnumerable<ModuleEntry> entries, CancellationToken cancellationToken)
+    {
+        foreach (var entry in entries)
         {
             var admission = CheckAdmission("Initialize");
-            if (!admission.IsSuccess) { return admission; }
+            if (!admission.IsSuccess) return admission;
             cancellationToken.ThrowIfCancellationRequested();
-            var context = new ModuleInitializationContext(entry.Descriptor, Services);
+            var context = new ModuleInitializationContext(entry.Descriptor, composition.Registry);
             await InvokeModuleAsync(entry, "Initialize", () => entry.Module.InitializeAsync(context, cancellationToken), cancellationToken).ConfigureAwait(false);
             entry.Phase = ModuleHostPhase.Initialized;
             cancellationToken.ThrowIfCancellationRequested();
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return CompletePhase("Initialize", ModuleHostPhase.Initialized);
+        return ModuleHostResult.Success;
     }
 
     private async ValueTask<ModuleHostResult> RunModulePhaseCoreAsync(
@@ -168,6 +194,8 @@ public sealed partial class ModuleHost
             if (!_shutdownRequested)
             {
                 _phase = phase;
+                if (phase == ModuleHostPhase.Initialized && Current.Generation == 0)
+                    Volatile.Write(ref _current, new ModuleHostView(this, 1, Current.Composition));
                 return ModuleHostResult.Success;
             }
         }

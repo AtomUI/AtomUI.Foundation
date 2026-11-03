@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 
 namespace AtomUI.Modularity;
 
@@ -6,13 +6,17 @@ public sealed partial class ModuleHost
 {
     private readonly object _stateLock = new();
     private readonly AsyncLocal<CallbackFrame?> _callbackFrame = new();
-    private readonly IReadOnlyList<ModuleRegistration> _registrations;
+    private readonly ConditionalWeakTable<IModule, ModuleEntry> _moduleOwnership = new();
     private readonly ModuleHostOptions _options;
-    private readonly List<ModuleEntry> _enabledModules = [];
-    private readonly ReadOnlyCollection<ModuleEntry> _enabledModuleView;
-    private readonly ModuleServiceCollection _services = new();
-    private readonly HashSet<ModuleEntry> _shutdownAttempts = [];
-    private IReadOnlyList<ModuleDescriptor>? _resolvedModules;
+    private ModuleHostView _current;
+    private IReadOnlyList<ModuleRegistration> _registrations => Current.Composition.Registrations;
+    private List<ModuleEntry> _enabledModules => Current.Composition.Modules;
+    private ModuleServiceCollection _services => Current.Composition.Services;
+    private IReadOnlyList<ModuleDescriptor>? _resolvedModules
+    {
+        get => Current.Composition.Resolved;
+        set => Current.Composition.Resolved = value;
+    }
     private ModuleHostPhase _phase = ModuleHostPhase.Created;
     private Task<ModuleHostResult>? _activeOperation;
     private string? _activeStage;
@@ -25,20 +29,25 @@ public sealed partial class ModuleHost
     {
         ArgumentNullException.ThrowIfNull(registrations);
 
-        _registrations = Array.AsReadOnly(registrations.ToArray());
         _options = options ?? new ModuleHostOptions();
-        _enabledModuleView = _enabledModules.AsReadOnly();
-        Services = new ModuleServiceRegistry(_services);
+        _current = new ModuleHostView(this, 0, new ModuleComposition(registrations, _options));
+        if (_options.Lifetime is IModuleHostReconfigurationLifetime lifetime)
+        {
+            _current.Composition.ManagedServices = lifetime.ServiceRuntime.InitialBindings;
+            lifetime.ServiceRuntime.AttachHost(this, () => Current.ManagedServices!);
+        }
     }
 
-    public IReadOnlyList<ModuleEntry> EnabledModules => _enabledModuleView;
+    public ModuleHostView Current => Volatile.Read(ref _current);
+
+    public IReadOnlyList<ModuleEntry> EnabledModules => Current.Modules;
 
     public ModuleHostPhase Phase
     {
         get { lock (_stateLock) { return _phase; } }
     }
 
-    public ModuleServiceRegistry Services { get; }
+    public ModuleServiceRegistry Services => Current.Services;
 
     public ValueTask<ModuleHostResult> InitializeAsync(CancellationToken cancellationToken = default)
     {

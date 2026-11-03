@@ -57,17 +57,22 @@ public sealed partial class ModuleHost
 
     private ModuleResolutionResult ResolveGraph()
     {
-        var diagnostics = ValidateRegistrations();
-        return diagnostics.Count != 0 ? new ModuleResolutionResult(diagnostics: diagnostics) : ModuleDependencyGraph.TryResolve(SelectEnabledDescriptors());
+        return ResolveGraph(Current.Composition);
     }
 
-    private IReadOnlyList<ModuleDescriptor> SelectEnabledDescriptors()
+    private static ModuleResolutionResult ResolveGraph(ModuleComposition composition)
+    {
+        var diagnostics = ValidateRegistrations(composition);
+        return diagnostics.Count != 0 ? new ModuleResolutionResult(diagnostics: diagnostics) : ModuleDependencyGraph.TryResolve(SelectEnabledDescriptors(composition));
+    }
+
+    private static IReadOnlyList<ModuleDescriptor> SelectEnabledDescriptors(ModuleComposition composition)
     {
         var selected = new Dictionary<ModuleId, ModuleDescriptor>();
-        var registrationsById = BuildRegistrationMap();
-        foreach (var registration in _registrations)
+        var registrationsById = BuildRegistrationMap(composition);
+        foreach (var registration in composition.Registrations)
         {
-            if (_options.EnabledModuleIds.Contains(registration.Descriptor.Id)) { AddWithRequiredDependencies(registration.Descriptor); }
+            if (composition.Options.EnabledModuleIds.Contains(registration.Descriptor.Id)) { AddWithRequiredDependencies(registration.Descriptor); }
         }
         return Array.AsReadOnly(selected.Values.ToArray());
 
@@ -81,16 +86,16 @@ public sealed partial class ModuleHost
         }
     }
 
-    private IReadOnlyList<ModuleDiagnostic> ValidateRegistrations()
+    private static IReadOnlyList<ModuleDiagnostic> ValidateRegistrations(ModuleComposition composition)
     {
-        var duplicate = _registrations.Select(registration => registration.Descriptor.Id).GroupBy(moduleId => moduleId).FirstOrDefault(group => group.Count() > 1);
+        var duplicate = composition.Registrations.Select(registration => registration.Descriptor.Id).GroupBy(moduleId => moduleId).FirstOrDefault(group => group.Count() > 1);
         if (duplicate is not null)
         {
             return [new ModuleDiagnostic(ModuleDiagnosticCodes.DuplicateModuleId,
                 $"Module id '{duplicate.Key}' is registered more than once.", duplicate.Key, dependencyPath: [duplicate.Key, duplicate.Key])];
         }
-        var registered = BuildRegistrationMap();
-        foreach (var enabled in _options.EnabledModuleIds)
+        var registered = BuildRegistrationMap(composition);
+        foreach (var enabled in composition.Options.EnabledModuleIds)
         {
             if (!registered.ContainsKey(enabled))
             {
@@ -101,10 +106,10 @@ public sealed partial class ModuleHost
         return [];
     }
 
-    private IReadOnlyDictionary<ModuleId, ModuleRegistration> BuildRegistrationMap()
+    private static IReadOnlyDictionary<ModuleId, ModuleRegistration> BuildRegistrationMap(ModuleComposition composition)
     {
         var result = new Dictionary<ModuleId, ModuleRegistration>();
-        foreach (var registration in _registrations) { result.TryAdd(registration.Descriptor.Id, registration); }
+        foreach (var registration in composition.Registrations) { result.TryAdd(registration.Descriptor.Id, registration); }
         return result;
     }
 

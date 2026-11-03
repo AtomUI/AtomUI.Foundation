@@ -16,4 +16,9 @@ public sealed class ModuleEntry
     public IModule Module { get; }
 
     public ModuleHostPhase Phase { get; internal set; } = ModuleHostPhase.ModulesCreated;
+
+    internal int Readers;
+    internal bool Closing;
+    internal TaskCompletionSource? ReadersExited;
+    internal Task<ModuleHostResult>? ShutdownOperation;
 }

@@ -16,9 +16,17 @@
 
 跨程序集由各包显式导出注册，应用合并后交给同一 Host 校验。看到依赖类型元数据不意味着已经取得其注册；缺失注册应在任何工厂执行前失败。Foundation 不运行期扫描 DLL、发现未知实现或复制另一份消费者依赖图。
 
+## 运行中模块集合变更边界
+
+1.0.2 Host 捕获构造时的注册与启用根；修改原输入集合、创建新 options 或重复 Resolve/Initialize 都不更新运行中的集合。这是现有静态合同，不通过取消防御性复制或重置已完成阶段来扩展。
+
+1.0.3 的[动态重配事务](module-reconfiguration.md)在同一 Host 上准备候选并提交增量变更，复用本分册的身份、Required 解析和操作协调。它单独记录变更基线、候选进度与提交结果，保留现有 `ModuleHostPhase` 的成员和数值；候选失败只清理候选成功项，不走当前集合的全局失败回滚。
+
+初始启动的共同配置屏障和全局失败清理规则仍适用于初始集合；重配只对候选新增或替换实例推进这些准备阶段，不重放未受影响实例。该协议与领域准备共享一次提交，覆盖关闭竞争、过期候选和未完成旧资源；单独的 `RunModulePhaseAsync` 分发不承担模块集合变更职责。
+
 ## 阶段与操作协调
 
-共同阶段顺序为 Resolve → Create → PreConfigureServices → ConfigureServices → PostConfigureServices → FreezeServices → Initialize。所有模块完成某个配置阶段后才进入下一共同阶段；初始化按拓扑序，关闭按逆序。
+共同阶段顺序为 Resolve → Create → PreConfigureServices → ConfigureServices → PostConfigureServices → FreezeServices → Initialize。所有模块完成某个配置阶段后才进入下一共同阶段；初始化按拓扑序。关闭按逆拓扑次序调度全体模块，Required 依赖等待其消费者回调真正退出；独立模块可分别推进，不因一个模块等待读者而阻止另一个模块归还该读者的 lease。初始失败、局部退休和最终关闭共用同一调度规则。
 
 保留 `ModuleHostPhase` 既有成员和数值。已完成阶段与正在执行的操作分开表达；实现可用内部协调器和 ledger，不以互相独立的 `_isInitialized` / `_isShutdown` 判定终态。
 
