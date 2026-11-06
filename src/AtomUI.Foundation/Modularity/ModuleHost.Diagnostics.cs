@@ -39,7 +39,7 @@ public sealed partial class ModuleHost
     private ModuleHostResult CreateResult(IEnumerable<ModuleDiagnostic> diagnostics)
     {
         var result = diagnostics.ToList();
-        if (_options.Diagnostics is not null && _callbackFrame.Value?.IsActive != true)
+        if (_options.Diagnostics is not null && !InCallback)
         {
             foreach (var diagnostic in result.ToArray())
             {

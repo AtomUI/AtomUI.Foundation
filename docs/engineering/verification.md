@@ -27,7 +27,7 @@
 | 诊断 | 接收器抛错不遮盖原错误；来源/路径/阶段完整；目标 Warning/Info 成功语义；变更拒绝保留候选阶段的结构化诊断 |
 | 事务统一 | 启动即空组合到 S 的变更，提交结果 Generation 为 1；手动阶段 API 与一次性 Initialize 得到相同实例与工厂次数；最终关闭经同一退休调度器退休当前代，当前状态的发布者依次收到 `StopCurrent` 与 `CompleteCurrentAsync`，持有模块 lease 的领域状态在后者中归还后关闭完成；被取代的发布者不再收到 `StopCurrent`；领域失败被报告且不跳过模块关闭 |
 | 并发压力 | 固定种子随机交错 Borrow/Dispose/CreateScope 与 BeginRetirement、ChangeAsync 与 AcquireView；每个 owner 恰释放一次，无 lease 在 Released 后可读，FinalCompletion 不伪报成功 |
-| 推进复杂度 | 以原 LuminEditor 场景标定的 owner 规模为基准，单次 lease 归还耗时不随 owner 总数线性增长；无同步 `Monitor.Wait`；Stop 回调跨 await 后再调用 Stop 被识别为重入 |
+| 推进复杂度 | 单次 lease 归还的分配与工作量不随域内待退休 batch 数增长（以 64 与 4096 个待退休 batch 对照）；服务层与宿主内部路径无同步等待；公开同步 Stop 的并发通知屏障保留；Stop 回调转交到同一逻辑流其他线程的 Stop 被识别为重入 |
 | 簿记 ledger | 成功候选退休后 ledger 为空；失败与 Pending 票据保留到最终关闭；重复关闭不重试 Release |
 
 生命周期并发测试使用可控制的 barrier 固定交错，不靠增加 sleep 或超时碰运气。非合作 reader 未退出时必须保持资源有效，取消等待不改变真实收尾；最终失败报告不得把保留资源标为 Released。

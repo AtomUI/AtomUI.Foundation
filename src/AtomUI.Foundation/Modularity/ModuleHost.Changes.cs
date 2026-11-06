@@ -45,7 +45,7 @@ public sealed partial class ModuleHost
         TaskCompletionSource<ModuleChangeResult> completion;
         lock (_stateLock)
         {
-            if (_callbackFrame.Value?.IsActive == true || _shutdownRequested || _recoveryFailure is not null ||
+            if (InCallback || _shutdownRequested || _recoveryFailure is not null ||
                 _phase != ModuleHostPhase.Initialized || _activeOperation is not null)
                 return ValueTask.FromResult(RejectedChange("The host is not available for a module change."));
             if (!ReferenceEquals(request.Baseline, Current) || !ReferenceEquals(request.Baseline.Host, this))

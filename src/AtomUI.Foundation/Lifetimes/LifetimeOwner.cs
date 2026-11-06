@@ -23,6 +23,8 @@ public abstract class LifetimeOwner
     /// <summary>A request owner retires itself once its first use has returned and nothing still uses it.</summary>
     internal bool RequestOwner;
     internal bool RequestUsed;
+    /// <summary>The scope that reserved this owner; used to unlink it in O(1) when pruned.</summary>
+    internal LifetimeScope? Scope;
     internal Exception? Failure;
     internal readonly List<LifetimeFailure> Failures = [];
     internal LifetimeRetirementBatch? Retirement;

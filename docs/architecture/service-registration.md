@@ -103,7 +103,7 @@ scope 公开的 `FinalCompletion` 成功之前，原登记方应已完成对应�
 
 按 2026-11-05 批准方案，Runtime 层对候选、scope 与全局关闭的退休索引合并为一个内部 ledger：索引仍存活的非根 scope、Pending 与失败的候选回执，以及全局关闭 batch。scope 按创建它的绑定集身份对象分组，而不以绑定集本身为键，因此存活的 scope 不会经 ledger 根住一份历史绑定视图及其工厂闭包。成功的最终退休由 ledger 统一移除对应条目，失败与 Pending 条目保留到最终关闭。各对象仍持有自己的公开回执，`Retirement`、`ManagedRetirement` 与各 `FinalCompletion` 的形态不变；ledger 只是待汇总索引，不是第二个释放权威。裁剪策略由 ledger 的分类决定，不逐集合做无合同清空。
 
-在途工厂的排空以可等待方式实现：`Pending` 归零时完成一个等待源，候选退休与 transition 准备不再在构造函数或准备方法内同步阻塞线程。锁层级固定为 Host → Runtime → Lifetimes → scope 状态锁，禁止反向获取。
+服务激活的准入检查与 owner 预留在 Runtime 锁内一步完成：`ServiceRegistration.Create` 在该锁内检查准入并调用生命周期层的预留入口（预留只取生命周期锁、不运行用户代码），随后在锁外执行工厂。候选退休与 transition 准备因此总能在同一把锁下看到每个已准入激活的 owner，无需等待在途工厂，原有的 `Pending` 计数与同步等待已移除。锁层级固定为 Host → Runtime → Lifetimes → scope 状态锁，禁止反向获取。
 
 Runtime 全局关闭还负责收尾全部真实 service scope 的同一登记身份，包括初始绑定、旧绑定及尚未单独请求退休的 scope；不能要求调用方在全局成功后再逐个关闭 scope 才解除内部索引。全局跟踪只索引现有 state/回执，不创建第二 scope 或另一释放流程。
 

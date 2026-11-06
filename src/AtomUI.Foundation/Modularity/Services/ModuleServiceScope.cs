@@ -10,7 +10,6 @@ public sealed class ModuleServiceScope : IAsyncDisposable
         internal readonly Dictionary<ServiceRegistration, Lazy<LifetimeOwner>> Instances = [];
         internal bool Closing;
         internal int Blocks;
-        internal int Pending;
         internal LifetimeScope Owners = owners;
         internal bool IsRoot = isRoot;
         internal object Origin = origin;

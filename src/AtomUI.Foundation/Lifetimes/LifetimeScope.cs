@@ -6,7 +6,7 @@ public sealed class LifetimeScope : IAsyncDisposable
 {
     internal LifetimeScope(LifetimeDomain domain) => LifetimeDomain = domain;
 
-    internal readonly List<LifetimeOwner> Owners = [];
+    internal readonly HashSet<LifetimeOwner> Owners = [];
     internal bool Retiring;
     internal LifetimeRetirementBatch? Retirement;
 
@@ -16,9 +16,14 @@ public sealed class LifetimeScope : IAsyncDisposable
         where T : class => LifetimeDomain.Own(this, moduleId, value, release, stop);
     public LifetimeOwner<T> Create<T>(ModuleId moduleId, Func<LifetimeOwner<T>, T> factory, Func<T, ValueTask> release, Action<T>? stop = null)
         where T : class => LifetimeDomain.Create(this, moduleId, factory, release, stop);
-    /// <summary>Creates a request owner: it retires after its last lease returns and no owner captures it.</summary>
-    internal LifetimeOwner<T> CreateRequest<T>(ModuleId moduleId, Func<LifetimeOwner<T>, T> factory, Func<T, ValueTask> release, Action<T>? stop = null)
-        where T : class => LifetimeDomain.Create(this, moduleId, factory, release, stop, requestOwner: true);
+    /// <summary>
+    /// Reserves a constructing owner without running user code. A request owner retires after its
+    /// last lease returns and no owner captures it.
+    /// </summary>
+    internal LifetimeOwner<T> Reserve<T>(ModuleId moduleId, Func<T, ValueTask> release, Action<T>? stop, bool requestOwner)
+        where T : class => LifetimeDomain.Reserve(this, moduleId, release, stop, requestOwner);
+    internal LifetimeOwner<T> Construct<T>(LifetimeOwner<T> owner, Func<LifetimeOwner<T>, T> factory)
+        where T : class => LifetimeDomain.Construct(owner, factory);
     public LifetimeRetirement BeginRetirement() => LifetimeDomain.Retire(this);
     public async ValueTask DisposeAsync()
     {

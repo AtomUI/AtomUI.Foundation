@@ -102,19 +102,18 @@ public sealed class ModuleServiceBindings
         LifetimeRetirement batch;
         lock (Runtime.Gate)
         {
-            while (_retiring && _retirement is null) Monitor.Wait(Runtime.Gate);
             if (_retirement is not null) return _retirementBatch!;
-            _retiring = true;
-            // No scope can be created for these bindings once _retiring is set under the same gate.
+            // Every admitted activation already reserved its owner under this gate, so the owner
+            // sets below are complete without waiting for in-flight factories.
             scopes = Runtime.Retirements.ScopesOf(this);
-            foreach (var registration in _newRegistrations) registration.Blocks++;
-            foreach (var scope in scopes) scope.Blocks++;
-            while (_newRegistrations.Any(registration => registration.Pending != 0) || scopes.Any(scope => scope.Pending != 0))
-                Monitor.Wait(Runtime.Gate);
             lock (Runtime.Lifetimes.Gate)
-                batch = _retirementBatch = Runtime.ShutdownRetirement ??
+                batch = Runtime.ShutdownRetirement ??
                     Runtime.Lifetimes.PrepareRetirement(_newRegistrations.SelectMany(registration => registration.Owners)
                         .Concat(scopes.SelectMany(scope => scope.Owners.Owners)).Distinct());
+            _retiring = true;
+            foreach (var registration in _newRegistrations) registration.Blocks++;
+            foreach (var scope in scopes) scope.Blocks++;
+            _retirementBatch = batch;
             sources = scopes.Select(scope => scope.PrepareRetirement()).Append(batch).ToArray();
             source = new(TaskCreationOptions.RunContinuationsAsynchronously);
             _retirement = LifetimeRetirement.Aggregate(source.Task, result =>
@@ -122,7 +121,6 @@ public sealed class ModuleServiceBindings
                 if (result.IsSuccess) Runtime.Retirements.RemoveCandidate(_retirement!);
             });
             Runtime.Retirements.AddCandidate(_retirement, batch);
-            Monitor.PulseAll(Runtime.Gate);
         }
         foreach (var scope in scopes) scope.StartRetirement();
         source.SetResult(sources);

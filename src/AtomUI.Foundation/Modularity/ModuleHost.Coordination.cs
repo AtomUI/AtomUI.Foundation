@@ -1,3 +1,5 @@
+using AtomUI.Lifetimes;
+
 namespace AtomUI.Modularity;
 
 public sealed partial class ModuleHost
@@ -14,7 +16,7 @@ public sealed partial class ModuleHost
         string? rejection = null;
         lock (_stateLock)
         {
-            if (_callbackFrame.Value?.IsActive == true)
+            if (InCallback)
             {
                 rejection = "outside a host callback";
             }
@@ -228,28 +230,12 @@ public sealed partial class ModuleHost
 
     private T InvokeCallback<T>(Func<T> action)
     {
-        var previous = _callbackFrame.Value;
-        var frame = new CallbackFrame();
-        _callbackFrame.Value = frame;
-        try { return action(); }
-        finally
-        {
-            frame.IsActive = false;
-            _callbackFrame.Value = previous;
-        }
+        using (CallbackFrame.Enter(_callbackFrame)) return action();
     }
 
     private async ValueTask<T> InvokeCallbackAsync<T>(Func<ValueTask<T>> action)
     {
-        var previous = _callbackFrame.Value;
-        var frame = new CallbackFrame();
-        _callbackFrame.Value = frame;
-        try { return await action().ConfigureAwait(false); }
-        finally
-        {
-            frame.IsActive = false;
-            _callbackFrame.Value = previous;
-        }
+        using (CallbackFrame.Enter(_callbackFrame)) return await action().ConfigureAwait(false);
     }
 
     private static TaskCompletionSource<ModuleHostResult> NewCompletion() => new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -258,10 +244,4 @@ public sealed partial class ModuleHost
     {
         return new ValueTask<ModuleHostResult>(cancellationToken.CanBeCanceled ? task.WaitAsync(cancellationToken) : task);
     }
-
-    private sealed class CallbackFrame
-    {
-        public volatile bool IsActive = true;
-    }
-
 }

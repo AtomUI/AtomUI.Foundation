@@ -11,7 +11,7 @@ namespace AtomUI.Foundation.Tests.Optimization;
 /// Each test asserts the approved target contract and fails against the current
 /// implementation. The category trait identifies them until the owning phase turns
 /// them green; it must not be used to skip them in release verification. The trait is applied per
-/// test and removed as each owning phase lands (O02 and O16 turned green in P2).
+/// test and removed as each owning phase lands (O02 and O16 turned green in P2, O05 and O07 in P3).
 /// </summary>
 public sealed class P0RedBaselineTests
 {
@@ -48,7 +48,6 @@ public sealed class P0RedBaselineTests
     // callback that hands the reentrant Stop to another thread of the same logical flow
     // must be treated as reentrant, not wait for the dispatch that is waiting on it.
     [Fact]
-    [Trait("Category", "P0Red")]
     public async Task O05_stop_reentry_from_flowed_context_is_not_a_self_wait()
     {
         var domain = new LifetimeDomain();
@@ -73,7 +72,6 @@ public sealed class P0RedBaselineTests
     // of pending retirements in the domain. Allocation is a deterministic proxy for the
     // full scans in the current progress loop.
     [Fact]
-    [Trait("Category", "P0Red")]
     public async Task O07_lease_return_cost_does_not_grow_with_pending_retirements()
     {
         var small = await MeasureLeaseReturnAllocationAsync(64);

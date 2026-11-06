@@ -8,10 +8,11 @@
   - Transient 服务改为请求 owner，最后一个 lease 归还后释放，不再等到所在 scope 关闭。
   - 生成器显示名推断不再剥除 `DataGrid` 前缀。
   - 实例重复接管检查从进程级改为 `LifetimeDomain` 级。
-  - `CreateModules()` 标记 `[Obsolete]`；新增 `TryAcquireView`、`TryBorrow`、`PrepareTransitionAsync`。
+  - `CreateModules()` 标记 `[Obsolete]`；新增 `TryAcquireView`、`TryBorrow`。批准稿中的 `PrepareTransitionAsync` 在 P3 实施时撤销。
 - 2026-11-05 完成方案 P0：新增 O02、O05、O07、O09 与新发现 O16 的红色用例（`Category=P0Red`），新增并发回归骨架，引入以 1.0.3 为 Shipped 基线的 PublicAPI 分析器。当前公开 API 与 1.0.3 一致。
 - 2026-11-05 完成方案 P1：启动、重配与最终关闭统一为同一组合变更事务与退休调度器；新增 `ModuleChangePreparation.StopCurrent()` 与 `CompleteCurrentAsync()`，最终关闭可退休当前代领域状态并归还其持有的模块 lease（审计 R01）；`LifetimeRetirement` 拆为内部 batch 与公开回执。Native AOT 证据待 SDK 更新后补跑。
 - 2026-11-05 完成方案 P2：Transient 改为请求 owner，最后一个 lease 归还后释放；Singleton 捕获 Transient 报告 Info 诊断 `ATOMUISVC004`；修复 O16，已准入工厂在 scope 同时退休时不再被误判失败；服务层退休索引合并为单一 ledger。
+- 2026-11-05 完成方案 P3：服务激活准入与 owner 预留原子化，服务层不再同步等待在途工厂；宿主与生命周期域共用异步上下文回调帧做重入检测；所有权表与 owner 编号改为 domain 级；推进循环索引化。行为变化：两个独立 `LifetimeDomain` 可分别接管同一实例；owner 编号只在 domain 内唯一。
 
 ## 1.0.4-local.1（本地，未公开发布）
 

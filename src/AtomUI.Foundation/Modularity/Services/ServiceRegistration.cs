@@ -12,7 +12,6 @@ internal abstract class ServiceRegistration(Type serviceType, ModuleId owner, Mo
     internal void BindDependencies(IReadOnlyDictionary<Type, ServiceRegistration> registrations) =>
         BoundDependencies = Dependencies.ToDictionary(type => type, type => registrations[type]);
     internal readonly List<LifetimeOwner> Owners = [];
-    internal int Pending;
     internal int Blocks;
     internal abstract LifetimeOwner Create(ModuleServiceScope scope);
 }
@@ -24,46 +23,31 @@ internal sealed class ServiceRegistration<T>(ModuleId owner, ModuleServiceLifeti
     internal override LifetimeOwner Create(ModuleServiceScope scope)
     {
         var runtime = scope.Runtime;
+        var releaseState = new ReleaseState(runtime.Gate, scope.State, this, release);
+        LifetimeOwner<T> reserved;
+        // Admission and owner reservation are one step under the runtime gate (which precedes the
+        // lifetime gate). Retirement and transition preparation therefore always observe every
+        // admitted activation in Owners and never wait for one; no user code runs in this region.
         lock (runtime.Gate)
         {
             if (Blocks != 0 || scope.State.Blocks != 0) throw new InvalidOperationException("Service admission is suspended.");
-            Pending++;
-            scope.State.Pending++;
-        }
-        var reserved = false;
-        var releaseState = new ReleaseState(runtime.Gate, scope.State, this, release);
-        try
-        {
-            Func<LifetimeOwner<T>, T> construct = current =>
-            {
-                lock (runtime.Gate)
-                {
-                    releaseState.Owner = current;
-                    Owners.Add(current);
-                    Pending--;
-                    scope.State.Pending--;
-                    reserved = true;
-                    Monitor.PulseAll(runtime.Gate);
-                }
-                var context = new ModuleServiceActivationContext(scope, BoundDependencies, new ServiceCapture<T>(current));
-                try
-                {
-                    return factory(context) ?? throw new InvalidOperationException($"Factory for '{typeof(T).FullName}' returned null.");
-                }
-                finally
-                {
-                    context.Close();
-                }
-            };
             // A Transient instance belongs to the request that activated it, not to the scope's lifetime.
-            return Lifetime == ModuleServiceLifetime.Transient
-                ? scope.Owners.CreateRequest(Owner, construct, releaseState.ReleaseAsync, stop)
-                : scope.Owners.Create(Owner, construct, releaseState.ReleaseAsync, stop);
+            reserved = scope.Owners.Reserve(Owner, releaseState.ReleaseAsync, stop, requestOwner: Lifetime == ModuleServiceLifetime.Transient);
+            releaseState.Owner = reserved;
+            Owners.Add(reserved);
         }
-        finally
+        return scope.Owners.Construct(reserved, current =>
         {
-            if (!reserved) lock (runtime.Gate) { Pending--; scope.State.Pending--; Monitor.PulseAll(runtime.Gate); }
-        }
+            var context = new ModuleServiceActivationContext(scope, BoundDependencies, new ServiceCapture<T>(current));
+            try
+            {
+                return factory(context) ?? throw new InvalidOperationException($"Factory for '{typeof(T).FullName}' returned null.");
+            }
+            finally
+            {
+                context.Close();
+            }
+        });
     }
 
     // A separate method-group target prevents the long-lived Release delegate from sharing

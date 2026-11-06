@@ -77,7 +77,7 @@ flowchart TD
 
 按 2026-11-05 批准的[架构优化方案](2026-11-05-foundation-architecture-optimization-proposal.md)，退休的内部 batch 与公开回执分离：内部 batch 持有成员、待终态 owner 与 Stop 分发状态，是域内唯一释放推进单位；公开 `LifetimeRetirement` 只暴露 `Completion`、`FinalCompletion` 与聚合，指向一个或多个 batch。可恢复暂停是 batch 的前置阶段，Stop 后与 batch 共用同一记录。公开签名不变。
 
-重入检测在 Host、Runtime 与 Lifetimes 三层统一使用异步上下文（AsyncLocal）承载的回调帧，Stop 回调跨 await 后仍被识别为回调内；不再使用线程静态计数。推进器按索引推进：待完成退休集与 owner 到退休的反向索引、scope 的 owner 集合、失败闭包的脏根子图重算，单次 lease 归还的开销不随域内 owner 总数线性增长。
+重入检测统一使用沿异步上下文（AsyncLocal）传递的回调帧，Host 与 Lifetimes 共用同一机制，不再使用线程静态计数。Stop 回调把工作转交到同一逻辑流的其他线程时，那段工作仍被识别为回调内；回调返回后才运行的工作看到的是已失效的帧。`LifetimeSuspension.Stop()` 与批量分发的并发通知屏障按既有合同保留：并发的第二个调用者同步等待另一调用者分发完全部 Stop 通知，只有经回调帧识别出的重入调用不等待自己。这是本层唯一保留的同步等待，它等待的是另一调用者正在执行的用户 Stop 回调。推进器按索引推进：首次快照待发布的 batch、无待终态 owner 的可完成 batch，以及已完成退休的 scope 各有索引；scope 的 owner 集合与 domain 的 owner 集合支持 O(1) 移除；需要顺序的位置按 owner 编号（即 domain 内的创建顺序）排序。单次 lease 归还的开销不随域内待退休 batch 或 owner 总数线性增长。失败闭包重算仍遍历相关图，但只在失败路径上因保留关系变化而触发。
 
 ## 失败保留与最终结果
 

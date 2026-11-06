@@ -1,3 +1,4 @@
+using AtomUI.Lifetimes;
 using System.Runtime.CompilerServices;
 
 namespace AtomUI.Modularity;
@@ -5,7 +6,9 @@ namespace AtomUI.Modularity;
 public sealed partial class ModuleHost
 {
     private readonly object _stateLock = new();
+    // Shared reentry mechanism (see Lifetimes.CallbackFrame); per host, so one host's callback may use another host.
     private readonly AsyncLocal<CallbackFrame?> _callbackFrame = new();
+    private bool InCallback => CallbackFrame.IsInside(_callbackFrame);
     private readonly ConditionalWeakTable<IModule, ModuleEntry> _moduleOwnership = new();
     private readonly ModuleHostOptions _options;
     private ModuleHostView _current;
@@ -140,7 +143,7 @@ public sealed partial class ModuleHost
 
     public ValueTask<ModuleHostResult> ShutdownAsync(CancellationToken cancellationToken = default)
     {
-        if (_callbackFrame.Value?.IsActive == true)
+        if (InCallback)
         {
             return ValueTask.FromResult(InvalidTransition("Shutdown", "outside a host callback"));
         }

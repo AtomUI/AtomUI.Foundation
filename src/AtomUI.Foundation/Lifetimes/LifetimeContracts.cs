@@ -65,6 +65,8 @@ internal sealed class LifetimeRetirementBatch
     internal bool NotificationsComplete;
     internal bool Completed;
     internal readonly HashSet<LifetimeOwner> PendingFinalOwners = [];
+    /// <summary>Scopes whose retirement this batch is; they leave the domain when it completes.</summary>
+    internal List<LifetimeScope>? Scopes;
     internal readonly TaskCompletionSource<LifetimeCloseResult> Initial = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal readonly TaskCompletionSource<LifetimeCloseResult> Final = new(TaskCreationOptions.RunContinuationsAsynchronously);
 

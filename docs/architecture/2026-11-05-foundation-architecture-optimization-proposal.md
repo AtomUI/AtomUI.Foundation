@@ -92,7 +92,7 @@
 目标：一套锁层级、一套重入检测、无同步阻塞等待、推进循环按索引推进。
 
 - 锁层级文档化为 Host `_stateLock` → Runtime `Gate` → Lifetimes `Gate` → `ScopeState.Gate`，禁止反向获取；Debug 构建增加层级断言。
-- Pending 排空改为可等待：`ServiceRegistration.Pending` 与 `ScopeState.Pending` 归零时完成一个 TaskCompletionSource，`PrepareTransition` 与候选 `PrepareRetirement` 改为 async 内部实现；公开 `PrepareTransition` 保留同步签名作为兼容入口，新增 `PrepareTransitionAsync` 供 Host 使用。
+- Pending 排空改为可等待：`ServiceRegistration.Pending` 与 `ScopeState.Pending` 归零时完成一个 TaskCompletionSource，`PrepareTransition` 与候选 `PrepareRetirement` 改为 async 内部实现；公开 `PrepareTransition` 保留同步签名作为兼容入口，新增 `PrepareTransitionAsync` 供 Host 使用。（2026-11-05 实施修正：改为把准入检查与 owner 预留在 Runtime 锁内原子完成，空窗消失，`Pending` 与等待一并删除，不再新增 `PrepareTransitionAsync`。）
 - `_stopCallbackDepth` 改为 AsyncLocal，与 Host 的 `CallbackFrame` 统一为一个 `CallbackScope` 内部类型，供 Host、Runtime、Lifetimes 共用。
 - `Ownership` 弱表与 `_nextOwnerId` 下沉到 `LifetimeDomain` 实例；跨 domain 重复接管改为显式合同："同一实例只能属于一个 domain 的一个 owner"由 domain 内检查保证，跨 domain 的接管由消费端负责，分册写明这一代价变化。
 - 推进循环索引化：`_retirements` 待完成集用 HashSet 加按 owner 的反向索引；`scope.Owners` 改为 HashSet 或带删除标记的列表；`RecomputeFailureClosureUnsafe` 只对脏根的可达子图重算；`Suspend` 用 owner 自身的 domain 归属判定代替 `_owners.Where`。
@@ -131,7 +131,7 @@
 | P0 基线与红色用例 | 为 O02、O05、O07、O09 各写最小失败用例；锁定 1.0.3 公开 API 基线；补并发回归骨架 | 本地 1.0.4 修复先提交 | 用例确实失败；基线文件生成；`git diff --check` 通过 |
 | P1 事务统一 | W1 全部；W3 中 `LifetimeRetirement` 拆分 | P0 | 200 个既有用例不改断言通过；启动、重配、关闭共用一条代码路径；R01 场景有回归 |
 | P2 寿命与簿记 | W2；W3 其余；W4 的 ledger 相关部分 | P1 | Transient 在最后 lease 归还后释放；A05/A06 场景按 ledger 验证；原 LuminEditor 1000 轮场景托管净增长不高于当前记录 |
-| P3 并发收敛 | W4 其余 | P2 | 无 `Monitor.Wait`；单一重入检测；推进循环复杂度用 10k owner 基准证明不随 N 线性增长；并发回归通过 |
+| P3 并发收敛 | W4 其余 | P2 | 服务层与宿主内部路径无 `Monitor.Wait`（公开同步 Stop 的并发通知屏障按既有合同保留）；单一重入检测；单次 lease 归还开销不随待退休数增长；并发回归通过 |
 | P4 生成器 | W5 | 可与 P1 并行 | IDE 增量缓存命中（以 `GeneratorDriverRunResult` 的 step 状态断言）；48 个既有用例通过；.NET 8 SDK 消费用例通过或分册明确要求 |
 | P5 工程保障 | W6 | 可与 P1 并行 | PublicAPI 无未声明变更；AOT 分析器 0 警告；发布工作流门禁生效；CHANGELOG 与证据迁移完成 |
 
@@ -159,6 +159,15 @@ P2 已于 2026-11-05 在工作区完成（未提交）：
 - W3：新增内部 `ModuleServiceRetirementLedger`，取代运行时的 `LiveScopes`、`CandidateRetirements`、`ShutdownRetirement` 字段、绑定集的 scope 列表与 `ScopeRegistration` 类。实施中发现若以绑定集对象为键，存活 scope 会经 ledger 根住历史绑定视图，既有保留用例拦下了这一点，已改为按绑定集身份对象分组。
 - 既有保留用例中三个用反射读取内部计数的辅助方法改读 ledger，断言未改。
 - 验证：Release 双目标构建 0 警告；运行时非红色用例 217 个连续 10 轮通过，新增 5 个 Transient 验收用例；生成器 48 个通过；剩余红色用例为 O05、O07、O09。真实消费者的生成器四种配置、net8/net10 JIT 与 net10 trim 通过；Native AOT 仍被同一 NuGet 安全审计拦截。原 LuminEditor 1000 轮场景不在本仓库，未重跑。
+
+P3 已于 2026-11-05 在工作区完成（未提交）：
+
+- 服务激活的准入检查与 owner 预留在 Runtime 锁内原子完成，生命周期层为此拆出预留与构造两个内部入口。服务层 3 处 `Monitor.Wait` 与 `Pending` 计数全部移除，不再需要 `PrepareTransitionAsync`。
+- 新增内部 `CallbackFrame`，宿主与生命周期域共用同一套沿异步上下文传递的重入检测，替代 `[ThreadStatic]` 计数。O05 转绿。
+- 实施修正：生命周期层两处通知屏障等待保留。既有用例 `ConcurrentCallsWaitForAllStopNotifications` 锁定了"并发第二调用者等待全部 Stop 通知"的合同，删除等待会改变它的断言；本层只改为用回调帧识别重入。
+- 所有权表与 owner 编号下沉到 `LifetimeDomain` 实例，去掉进程级锁。
+- 推进循环索引化：首次快照、可完成 batch 与已完成 scope 各有索引，owner 与 scope 集合支持 O(1) 移除，排序按 domain 内 owner 编号。O07 转绿。失败闭包重算未索引化，只在失败路径触发。
+- 验证：Release 双目标构建 0 警告；运行时 219 个用例连续 15 轮全部通过，运行时侧已无红色用例；生成器 48 个通过，O09 留待 P4。真实消费者的生成器四种配置、net8/net10 JIT 与 net10 trim 通过；Native AOT 仍被同一 NuGet 安全审计拦截。
 
 ## 7. 验收矩阵
 

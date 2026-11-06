@@ -136,7 +136,7 @@ Stop 屏障之后，立即启动领域完成和模块读者排空，让两者共
 
 `IModuleHostReconfigurationLifetime.ServiceRuntime` 让自定义 Host lifetime 适配器公开它实际拥有的 `ModuleServiceRuntime`；运行时本身实现此接口。未适配的自定义 lifetime 不能被假定支持局部变更，应明确拒绝；不通过另建 Runtime 绕过。
 
-2026-11-05 批准方案追加：`ModuleServiceRuntime.PrepareTransitionAsync(previous, next, CancellationToken)` 以可等待方式排空在途工厂后返回 `ModuleServiceTransition`，Host 使用该入口；同步 `PrepareTransition` 保留为兼容入口。`ModuleHost.TryAcquireView` 在重配窗口返回 false 而不抛出，签名见[模块宿主](modularity.md#同步入口与诊断)。
+2026-11-05 批准方案追加：`ModuleHost.TryAcquireView` 在重配窗口返回 false 而不抛出，签名见[模块宿主](modularity.md#同步入口与诊断)。批准稿曾计划新增 `ModuleServiceRuntime.PrepareTransitionAsync`；实施时改为把服务激活的准入与 owner 预留合并为原子步骤，`PrepareTransition` 不再等待在途工厂，异步入口失去存在理由，因此不新增。
 
 请求的实际构造签名为：
 

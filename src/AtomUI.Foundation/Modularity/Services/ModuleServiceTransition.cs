@@ -31,7 +31,6 @@ public sealed class ModuleServiceTransition : IDisposable
             foreach (var registration in _removed) registration.Blocks++;
             try
             {
-                while (_removed.Any(registration => registration.Pending != 0)) Monitor.Wait(runtime.Gate);
                 LifetimeSuspension suspension;
                 lock (runtime.Lifetimes.Gate)
                     suspension = runtime.Lifetimes.Suspend(_removed.SelectMany(registration => registration.Owners)
@@ -51,7 +50,6 @@ public sealed class ModuleServiceTransition : IDisposable
                             foreach (var scope in added) scope.Blocks++;
                         }
                         if (added.Length == 0) break;
-                        while (added.Any(scope => scope.Pending != 0)) Monitor.Wait(runtime.Gate);
                         lock (runtime.Lifetimes.Gate)
                         {
                             var seeds = suspension.Owners.Concat(_scopes.SelectMany(scope => scope.Owners.Owners))
