@@ -26,6 +26,9 @@ on:
       - "global.json"
       - "tests/fixtures/**"
       - ".github/workflows/verify.yml"
+  # Verifies any commit on demand, e.g. a documentation-only head commit that the release gate
+  # requires to have a successful verification run before publishing.
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -62,14 +62,6 @@ jobs:
         run: |
           dotnet test ./tests/AtomUI.Foundation.Generator.Tests/AtomUI.Foundation.Generator.Tests.csproj --framework net10.0 --configuration $env:BUILD_CONFIGURATION --no-build
 
-      - name: Verify real ProjectReference and NuGet consumers
-        shell: pwsh
-        run: |
-          # JIT consumers and the .NET 8 SDK analyzer load run here; trim and Native AOT are
-          # covered by the Linux verification workflow required below before publishing.
-          python tests/fixtures/generator-consumer/verify.py --mode all --case all --sdk8-loader --work-dir .artifacts/release-verification
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
       - name: Require successful verification for the target commit
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to_nuget == 'true' }}
         shell: pwsh
@@ -92,6 +84,7 @@ jobs:
           )
           foreach ($project in $projects) {
             dotnet pack --no-build --output "$env:PACKAGE_OUTPUT_DIR/$env:BUILD_CONFIGURATION" --configuration $env:BUILD_CONFIGURATION $project
+            if ($LASTEXITCODE -ne 0) { throw "dotnet pack failed for $project with exit code $LASTEXITCODE." }
           }
 
       - name: Validate NuGet artifacts
@@ -140,6 +133,16 @@ jobs:
               }
             } finally { $archive.Dispose() }
           }
+
+      - name: Verify real ProjectReference and NuGet consumers
+        shell: pwsh
+        run: |
+          # Runs after packing and validation: its Debug ProjectReference consumers re-restore the
+          # shared obj directory, which must not happen before the Release pack --no-build.
+          # JIT consumers and the .NET 8 SDK analyzer load run here; trim and Native AOT are
+          # covered by the Linux verification workflow required before publishing.
+          python tests/fixtures/generator-consumer/verify.py --mode all --case all --sdk8-loader --work-dir .artifacts/release-verification
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload NuGet artifacts
         uses: actions/upload-artifact@v6
