@@ -11,7 +11,8 @@
 - 2026-11-05 已由 `scripts/PublishToLocalSources.ps1` 从提交 `da90e01` 打包并推送到本地源 `AtomUILocal`。包 SHA-256 前缀：`AtomUI.Foundation.1.0.4` 为 `0b9dedfb608a92a8`，`AtomUI.Foundation.Generator.1.0.4` 为 `547e86a36327f25f`。从该源以独立包缓存还原后，net8.0（.NET 8.0.24）与 net10.0（.NET 10.0.8）消费程序运行通过，生成目录、Transient 请求 owner 与 `TryAcquireView` 均按预期工作。
 - 2026-11-05 发布准备。包含 1.0.4-local.1 的全部审计修复与下列优化。公开 API 新增 `ModuleChangePreparation.StopCurrent()`、`CompleteCurrentAsync()`、`ModuleHost.TryAcquireView`、`ModuleServiceScope.TryBorrow`、`ModuleDiagnosticCodes.ModuleChangeRejected`、`ModuleServiceDiagnosticCodes.SingletonCapturesTransient`，已并入 `PublicAPI.Shipped.txt`；无公开 API 删除。
 - 本机验证：Release 双目标构建 0 警告；运行时 224 个、生成器 52 个用例通过；真实消费者的生成器四种配置、net8/net10 JIT 与 net10 trim 通过。
-- 尚待取得的资格：Native AOT 消费者在本机被 NuGet 漏洞审计拦截（`Microsoft.DotNet.ILCompiler` 10.0.8，GHSA-p3jp-9v83-76w9）；.NET 8 SDK 装载用例只在 CI 运行；原 LuminEditor 1000 轮联合场景未重跑。
+- 尚待取得的资格（发布准备时）：Native AOT 消费者在本机被 NuGet 漏洞审计拦截（`Microsoft.DotNet.ILCompiler` 10.0.8，GHSA-p3jp-9v83-76w9）；.NET 8 SDK 装载用例只在 CI 运行；原 LuminEditor 1000 轮联合场景未重跑。
+- 2026-11-05 补充验证：本机改用标准位置 `/usr/local/share/dotnet` 的 SDK 10.0.403（运行时 10.0.14、8.0.31）后，在源码 `da90e01` 上重跑完整验证并全部通过：Release 双目标构建 0 警告，运行时 224 个、生成器 52 个用例通过；真实消费者覆盖生成器四种配置、net8.0 与 net10.0 JIT、net10.0 trim、osx-arm64 Native AOT，以及由 .NET 8 SDK 8.0.425 装载生成器并运行生成目录（`--sdk8-loader`）。上述 AOT 拦截与 .NET 8 SDK 装载两项资格由此关闭；LuminEditor 联合场景仍未重跑。
 
 - 2026-11-05 批准[架构优化重构方案](docs/architecture/2026-11-05-foundation-architecture-optimization-proposal.md)，正式分册已按其第 8 节修订，P0–P5 在本版本实施。行为变化：
   - Transient 服务改为请求 owner，最后一个 lease 归还后释放，不再等到所在 scope 关闭。
