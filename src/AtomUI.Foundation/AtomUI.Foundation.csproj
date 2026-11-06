@@ -14,4 +14,14 @@
     <ItemGroup>
         <AssemblyMetadata Include="AtomUIFoundationVersion" Value="$(AtomUIFoundationVersion)" />
     </ItemGroup>
+    <!-- Public API baseline: Shipped = last published package (1.0.3, 0d0a361); new symbols go to Unshipped. -->
+    <PropertyGroup>
+        <!-- Undeclared new API (RS0016) and removed shipped API (RS0017) fail the build. -->
+        <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017</WarningsAsErrors>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+        <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+        <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+    </ItemGroup>
 </Project>

@@ -1,0 +1,423 @@
+#nullable enable
+AtomUI.Foundation.FoundationAssemblyMarker
+AtomUI.Lifetimes.LifetimeCleanupException
+AtomUI.Lifetimes.LifetimeCleanupException.LifetimeCleanupException(AtomUI.Lifetimes.LifetimeCloseResult! result) -> void
+AtomUI.Lifetimes.LifetimeCleanupException.Result.get -> AtomUI.Lifetimes.LifetimeCloseResult!
+AtomUI.Lifetimes.LifetimeCloseResult
+AtomUI.Lifetimes.LifetimeCloseResult.Failures.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Lifetimes.LifetimeFailure!>!
+AtomUI.Lifetimes.LifetimeCloseResult.IsSuccess.get -> bool
+AtomUI.Lifetimes.LifetimeCloseResult.Owners.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Lifetimes.LifetimeOwnerSnapshot!>!
+AtomUI.Lifetimes.LifetimeDomain
+AtomUI.Lifetimes.LifetimeDomain.BeginRetirement() -> AtomUI.Lifetimes.LifetimeRetirement!
+AtomUI.Lifetimes.LifetimeDomain.CompleteRetirement() -> AtomUI.Lifetimes.LifetimeRetirement!
+AtomUI.Lifetimes.LifetimeDomain.CreateScope() -> AtomUI.Lifetimes.LifetimeScope!
+AtomUI.Lifetimes.LifetimeDomain.DisposeAsync() -> System.Threading.Tasks.ValueTask
+AtomUI.Lifetimes.LifetimeDomain.LifetimeDomain() -> void
+AtomUI.Lifetimes.LifetimeDomain.Stop() -> void
+AtomUI.Lifetimes.LifetimeDomain.Suspend(System.Collections.Generic.IEnumerable<AtomUI.Lifetimes.LifetimeOwner!>! owners) -> AtomUI.Lifetimes.LifetimeSuspension!
+AtomUI.Lifetimes.LifetimeFailure
+AtomUI.Lifetimes.LifetimeFailure.<Clone>$() -> AtomUI.Lifetimes.LifetimeFailure!
+AtomUI.Lifetimes.LifetimeFailure.Deconstruct(out long OwnerId, out AtomUI.Modularity.ModuleId ModuleId, out string! Stage, out System.Exception! Exception) -> void
+AtomUI.Lifetimes.LifetimeFailure.Equals(AtomUI.Lifetimes.LifetimeFailure? other) -> bool
+AtomUI.Lifetimes.LifetimeFailure.Exception.get -> System.Exception!
+AtomUI.Lifetimes.LifetimeFailure.Exception.init -> void
+AtomUI.Lifetimes.LifetimeFailure.LifetimeFailure(long OwnerId, AtomUI.Modularity.ModuleId ModuleId, string! Stage, System.Exception! Exception) -> void
+AtomUI.Lifetimes.LifetimeFailure.ModuleId.get -> AtomUI.Modularity.ModuleId
+AtomUI.Lifetimes.LifetimeFailure.ModuleId.init -> void
+AtomUI.Lifetimes.LifetimeFailure.OwnerId.get -> long
+AtomUI.Lifetimes.LifetimeFailure.OwnerId.init -> void
+AtomUI.Lifetimes.LifetimeFailure.Stage.get -> string!
+AtomUI.Lifetimes.LifetimeFailure.Stage.init -> void
+AtomUI.Lifetimes.LifetimeLease<T>
+AtomUI.Lifetimes.LifetimeLease<T>.Dispose() -> void
+AtomUI.Lifetimes.LifetimeLease<T>.Value.get -> T!
+AtomUI.Lifetimes.LifetimeOwner
+AtomUI.Lifetimes.LifetimeOwner.BeginRetirement() -> AtomUI.Lifetimes.LifetimeRetirement!
+AtomUI.Lifetimes.LifetimeOwner.Id.get -> long
+AtomUI.Lifetimes.LifetimeOwner.LifetimeDomain.get -> AtomUI.Lifetimes.LifetimeDomain!
+AtomUI.Lifetimes.LifetimeOwner.ModuleId.get -> AtomUI.Modularity.ModuleId
+AtomUI.Lifetimes.LifetimeOwner.State.get -> AtomUI.Lifetimes.LifetimeOwnerState
+AtomUI.Lifetimes.LifetimeOwner.WaitForRelease(AtomUI.Lifetimes.LifetimeOwner! prerequisite) -> void
+AtomUI.Lifetimes.LifetimeOwner<T>
+AtomUI.Lifetimes.LifetimeOwner<T>.AcquireLease() -> AtomUI.Lifetimes.LifetimeLease<T!>!
+AtomUI.Lifetimes.LifetimeOwner<T>.Capture<TDependency>(AtomUI.Lifetimes.LifetimeOwner<TDependency!>! dependency) -> AtomUI.Lifetimes.LifetimeLease<TDependency!>!
+AtomUI.Lifetimes.LifetimeOwnerSnapshot
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.<Clone>$() -> AtomUI.Lifetimes.LifetimeOwnerSnapshot!
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Deconstruct(out long Id, out AtomUI.Modularity.ModuleId ModuleId, out AtomUI.Lifetimes.LifetimeOwnerState State, out int Readers, out bool IsConstructing, out System.Collections.Generic.IReadOnlyList<long>! Dependencies, out System.Exception? Failure) -> void
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Dependencies.get -> System.Collections.Generic.IReadOnlyList<long>!
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Dependencies.init -> void
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Equals(AtomUI.Lifetimes.LifetimeOwnerSnapshot? other) -> bool
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Failure.get -> System.Exception?
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Failure.init -> void
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Id.get -> long
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Id.init -> void
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.IsConstructing.get -> bool
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.IsConstructing.init -> void
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.LifetimeOwnerSnapshot(long Id, AtomUI.Modularity.ModuleId ModuleId, AtomUI.Lifetimes.LifetimeOwnerState State, int Readers, bool IsConstructing, System.Collections.Generic.IReadOnlyList<long>! Dependencies, System.Exception? Failure) -> void
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.ModuleId.get -> AtomUI.Modularity.ModuleId
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.ModuleId.init -> void
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Readers.get -> int
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.Readers.init -> void
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.State.get -> AtomUI.Lifetimes.LifetimeOwnerState
+AtomUI.Lifetimes.LifetimeOwnerSnapshot.State.init -> void
+AtomUI.Lifetimes.LifetimeOwnerState
+AtomUI.Lifetimes.LifetimeOwnerState.Active = 0 -> AtomUI.Lifetimes.LifetimeOwnerState
+AtomUI.Lifetimes.LifetimeOwnerState.CleanupFailed = 4 -> AtomUI.Lifetimes.LifetimeOwnerState
+AtomUI.Lifetimes.LifetimeOwnerState.Released = 3 -> AtomUI.Lifetimes.LifetimeOwnerState
+AtomUI.Lifetimes.LifetimeOwnerState.Releasing = 2 -> AtomUI.Lifetimes.LifetimeOwnerState
+AtomUI.Lifetimes.LifetimeOwnerState.RetainedByFailedOwner = 5 -> AtomUI.Lifetimes.LifetimeOwnerState
+AtomUI.Lifetimes.LifetimeOwnerState.Retiring = 1 -> AtomUI.Lifetimes.LifetimeOwnerState
+AtomUI.Lifetimes.LifetimeRetirement
+AtomUI.Lifetimes.LifetimeRetirement.Completion.get -> System.Threading.Tasks.Task<AtomUI.Lifetimes.LifetimeCloseResult!>!
+AtomUI.Lifetimes.LifetimeRetirement.FinalCompletion.get -> System.Threading.Tasks.Task<AtomUI.Lifetimes.LifetimeCloseResult!>!
+AtomUI.Lifetimes.LifetimeScope
+AtomUI.Lifetimes.LifetimeScope.BeginRetirement() -> AtomUI.Lifetimes.LifetimeRetirement!
+AtomUI.Lifetimes.LifetimeScope.Create<T>(AtomUI.Modularity.ModuleId moduleId, System.Func<AtomUI.Lifetimes.LifetimeOwner<T!>!, T!>! factory, System.Func<T!, System.Threading.Tasks.ValueTask>! release, System.Action<T!>? stop = null) -> AtomUI.Lifetimes.LifetimeOwner<T!>!
+AtomUI.Lifetimes.LifetimeScope.DisposeAsync() -> System.Threading.Tasks.ValueTask
+AtomUI.Lifetimes.LifetimeScope.IsRetiring.get -> bool
+AtomUI.Lifetimes.LifetimeScope.LifetimeDomain.get -> AtomUI.Lifetimes.LifetimeDomain!
+AtomUI.Lifetimes.LifetimeScope.Own<T>(AtomUI.Modularity.ModuleId moduleId, T! value, System.Func<T!, System.Threading.Tasks.ValueTask>! release, System.Action<T!>? stop = null) -> AtomUI.Lifetimes.LifetimeOwner<T!>!
+AtomUI.Lifetimes.LifetimeSuspension
+AtomUI.Lifetimes.LifetimeSuspension.CompleteRetirement() -> AtomUI.Lifetimes.LifetimeRetirement!
+AtomUI.Lifetimes.LifetimeSuspension.Dispose() -> void
+AtomUI.Lifetimes.LifetimeSuspension.Owners.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Lifetimes.LifetimeOwner!>!
+AtomUI.Lifetimes.LifetimeSuspension.Retirement.get -> AtomUI.Lifetimes.LifetimeRetirement?
+AtomUI.Lifetimes.LifetimeSuspension.Stop() -> void
+AtomUI.Modularity.IModule
+AtomUI.Modularity.IModule.ConfigureServicesAsync(AtomUI.Modularity.ModuleServiceConfigurationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+AtomUI.Modularity.IModule.InitializeAsync(AtomUI.Modularity.ModuleInitializationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+AtomUI.Modularity.IModule.PostConfigureServicesAsync(AtomUI.Modularity.ModuleServiceConfigurationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+AtomUI.Modularity.IModule.PreConfigureServicesAsync(AtomUI.Modularity.ModuleServiceConfigurationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+AtomUI.Modularity.IModule.ShutdownAsync(AtomUI.Modularity.ModuleShutdownContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+AtomUI.Modularity.IModuleChangeParticipant
+AtomUI.Modularity.IModuleChangeParticipant.ConfigureAsync(AtomUI.Modularity.ModuleChangeContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+AtomUI.Modularity.IModuleChangeParticipant.PrepareAsync(AtomUI.Modularity.ModuleChangeContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleChangePreparation!>
+AtomUI.Modularity.IModuleDiagnostics
+AtomUI.Modularity.IModuleDiagnostics.Report(AtomUI.Modularity.ModuleDiagnostic! diagnostic) -> void
+AtomUI.Modularity.IModuleHostLifetime
+AtomUI.Modularity.IModuleHostLifetime.CompleteShutdownAsync() -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.IModuleHostLifetime.Freeze() -> void
+AtomUI.Modularity.IModuleHostLifetime.Stop() -> void
+AtomUI.Modularity.IModuleHostReconfigurationLifetime
+AtomUI.Modularity.IModuleHostReconfigurationLifetime.ServiceRuntime.get -> AtomUI.Modularity.Services.ModuleServiceRuntime!
+AtomUI.Modularity.ModuleAttribute
+AtomUI.Modularity.ModuleAttribute.Dependencies.get -> System.Type![]!
+AtomUI.Modularity.ModuleAttribute.Dependencies.set -> void
+AtomUI.Modularity.ModuleAttribute.DisplayName.get -> string?
+AtomUI.Modularity.ModuleAttribute.DisplayName.set -> void
+AtomUI.Modularity.ModuleAttribute.ModuleAttribute() -> void
+AtomUI.Modularity.ModuleBase
+AtomUI.Modularity.ModuleBase.ModuleBase() -> void
+AtomUI.Modularity.ModuleCatalog
+AtomUI.Modularity.ModuleCatalog.ModuleCatalog(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDescriptor!>! modules) -> void
+AtomUI.Modularity.ModuleCatalog.Modules.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDescriptor!>!
+AtomUI.Modularity.ModuleCatalog.Resolve() -> AtomUI.Modularity.ModuleResolutionResult!
+AtomUI.Modularity.ModuleCatalog.TryGetModule<TModule>(out AtomUI.Modularity.ModuleDescriptor? module) -> bool
+AtomUI.Modularity.ModuleChangeContext
+AtomUI.Modularity.ModuleChangeContext.Current.get -> AtomUI.Modularity.ModuleHostView!
+AtomUI.Modularity.ModuleChangeContext.ManagedServices.get -> AtomUI.Modularity.Services.ModuleServiceBindings?
+AtomUI.Modularity.ModuleChangeContext.Modules.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleEntry!>!
+AtomUI.Modularity.ModuleChangeContext.Services.get -> AtomUI.Modularity.ModuleServiceCollection!
+AtomUI.Modularity.ModuleChangePreparation
+AtomUI.Modularity.ModuleChangePreparation.ModuleChangePreparation() -> void
+AtomUI.Modularity.ModuleChangeRequest
+AtomUI.Modularity.ModuleChangeRequest.Baseline.get -> AtomUI.Modularity.ModuleHostView!
+AtomUI.Modularity.ModuleChangeRequest.Cascade.get -> bool
+AtomUI.Modularity.ModuleChangeRequest.DisabledModules.get -> System.Collections.Generic.IReadOnlySet<AtomUI.Modularity.ModuleId>!
+AtomUI.Modularity.ModuleChangeRequest.ModuleChangeRequest(AtomUI.Modularity.ModuleHostView! baseline, System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleRegistration!>! registrations, AtomUI.Modularity.ModuleHostOptions! options, System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleId>? disabledModules = null, System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleId>? replacedModules = null, bool cascade = false, AtomUI.Modularity.IModuleChangeParticipant? participant = null) -> void
+AtomUI.Modularity.ModuleChangeRequest.Options.get -> AtomUI.Modularity.ModuleHostOptions!
+AtomUI.Modularity.ModuleChangeRequest.Participant.get -> AtomUI.Modularity.IModuleChangeParticipant?
+AtomUI.Modularity.ModuleChangeRequest.Registrations.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleRegistration!>!
+AtomUI.Modularity.ModuleChangeRequest.ReplacedModules.get -> System.Collections.Generic.IReadOnlySet<AtomUI.Modularity.ModuleId>!
+AtomUI.Modularity.ModuleChangeResult
+AtomUI.Modularity.ModuleChangeResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDiagnostic!>!
+AtomUI.Modularity.ModuleChangeResult.IsCommitted.get -> bool
+AtomUI.Modularity.ModuleChangeResult.Retirement.get -> AtomUI.Modularity.ModuleChangeRetirement!
+AtomUI.Modularity.ModuleChangeResult.Status.get -> AtomUI.Modularity.ModuleChangeStatus
+AtomUI.Modularity.ModuleChangeResult.View.get -> AtomUI.Modularity.ModuleHostView!
+AtomUI.Modularity.ModuleChangeRetirement
+AtomUI.Modularity.ModuleChangeRetirement.FinalCompletion.get -> System.Threading.Tasks.Task<AtomUI.Modularity.ModuleHostResult!>!
+AtomUI.Modularity.ModuleChangeRetirement.ManagedRetirement.get -> AtomUI.Lifetimes.LifetimeRetirement?
+AtomUI.Modularity.ModuleChangeStatus
+AtomUI.Modularity.ModuleChangeStatus.Canceled = 3 -> AtomUI.Modularity.ModuleChangeStatus
+AtomUI.Modularity.ModuleChangeStatus.Committed = 4 -> AtomUI.Modularity.ModuleChangeStatus
+AtomUI.Modularity.ModuleChangeStatus.NoChange = 0 -> AtomUI.Modularity.ModuleChangeStatus
+AtomUI.Modularity.ModuleChangeStatus.Rejected = 1 -> AtomUI.Modularity.ModuleChangeStatus
+AtomUI.Modularity.ModuleChangeStatus.StaleBaseline = 2 -> AtomUI.Modularity.ModuleChangeStatus
+AtomUI.Modularity.ModuleDependencyDescriptor
+AtomUI.Modularity.ModuleDependencyDescriptor.ModuleId.get -> AtomUI.Modularity.ModuleId
+AtomUI.Modularity.ModuleDependencyGraph
+AtomUI.Modularity.ModuleDependencyGraph.Modules.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDescriptor!>!
+AtomUI.Modularity.ModuleDescriptor
+AtomUI.Modularity.ModuleDescriptor.Dependencies.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDependencyDescriptor!>!
+AtomUI.Modularity.ModuleDescriptor.DisplayName.get -> string!
+AtomUI.Modularity.ModuleDescriptor.Id.get -> AtomUI.Modularity.ModuleId
+AtomUI.Modularity.ModuleDescriptor.SourceAssemblyName.get -> string?
+AtomUI.Modularity.ModuleDescriptor.TypeName.get -> string?
+AtomUI.Modularity.ModuleDiagnostic
+AtomUI.Modularity.ModuleDiagnostic.<Clone>$() -> AtomUI.Modularity.ModuleDiagnostic!
+AtomUI.Modularity.ModuleDiagnostic.Code.get -> string!
+AtomUI.Modularity.ModuleDiagnostic.Context.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+AtomUI.Modularity.ModuleDiagnostic.DependencyPath.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleId>?
+AtomUI.Modularity.ModuleDiagnostic.Equals(AtomUI.Modularity.ModuleDiagnostic? other) -> bool
+AtomUI.Modularity.ModuleDiagnostic.ExceptionType.get -> string?
+AtomUI.Modularity.ModuleDiagnostic.Message.get -> string!
+AtomUI.Modularity.ModuleDiagnostic.ModuleDiagnostic(string! code, string! message, AtomUI.Modularity.ModuleId? moduleId = null, AtomUI.Modularity.ModuleId? relatedModuleId = null, AtomUI.Modularity.ModuleDiagnosticSeverity severity = AtomUI.Modularity.ModuleDiagnosticSeverity.Error, string? stage = null, string? sourceAssemblyName = null, string? exceptionType = null, System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleId>? dependencyPath = null, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? context = null) -> void
+AtomUI.Modularity.ModuleDiagnostic.ModuleId.get -> AtomUI.Modularity.ModuleId?
+AtomUI.Modularity.ModuleDiagnostic.RelatedModuleId.get -> AtomUI.Modularity.ModuleId?
+AtomUI.Modularity.ModuleDiagnostic.Severity.get -> AtomUI.Modularity.ModuleDiagnosticSeverity
+AtomUI.Modularity.ModuleDiagnostic.SourceAssemblyName.get -> string?
+AtomUI.Modularity.ModuleDiagnostic.Stage.get -> string?
+AtomUI.Modularity.ModuleDiagnosticCodes
+AtomUI.Modularity.ModuleDiagnosticSeverity
+AtomUI.Modularity.ModuleDiagnosticSeverity.Error = 2 -> AtomUI.Modularity.ModuleDiagnosticSeverity
+AtomUI.Modularity.ModuleDiagnosticSeverity.Info = 0 -> AtomUI.Modularity.ModuleDiagnosticSeverity
+AtomUI.Modularity.ModuleDiagnosticSeverity.Warning = 1 -> AtomUI.Modularity.ModuleDiagnosticSeverity
+AtomUI.Modularity.ModuleEntry
+AtomUI.Modularity.ModuleEntry.Descriptor.get -> AtomUI.Modularity.ModuleDescriptor!
+AtomUI.Modularity.ModuleEntry.Module.get -> AtomUI.Modularity.IModule!
+AtomUI.Modularity.ModuleEntry.Phase.get -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleGraphException
+AtomUI.Modularity.ModuleGraphException.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDiagnostic!>!
+AtomUI.Modularity.ModuleGraphException.ModuleGraphException(System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDiagnostic!>! diagnostics) -> void
+AtomUI.Modularity.ModuleHost
+AtomUI.Modularity.ModuleHost.AcquireView(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleId>? modules = null) -> AtomUI.Modularity.ModuleHostLease!
+AtomUI.Modularity.ModuleHost.ChangeAsync(AtomUI.Modularity.ModuleChangeRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleChangeResult!>
+AtomUI.Modularity.ModuleHost.ConfigureServicesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.ModuleHost.CreateModules() -> AtomUI.Modularity.ModuleHostResult!
+AtomUI.Modularity.ModuleHost.CreateModulesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.ModuleHost.Current.get -> AtomUI.Modularity.ModuleHostView!
+AtomUI.Modularity.ModuleHost.EnabledModules.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleEntry!>!
+AtomUI.Modularity.ModuleHost.FreezeServices() -> AtomUI.Modularity.ModuleHostResult!
+AtomUI.Modularity.ModuleHost.InitializeAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.ModuleHost.InitializeModulesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.ModuleHost.ModuleHost(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleRegistration!>! registrations, AtomUI.Modularity.ModuleHostOptions? options = null) -> void
+AtomUI.Modularity.ModuleHost.Phase.get -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHost.PostConfigureServicesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.ModuleHost.PreConfigureServicesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.ModuleHost.ResolveModules() -> AtomUI.Modularity.ModuleHostResult!
+AtomUI.Modularity.ModuleHost.RunModulePhaseAsync(AtomUI.Modularity.ModulePhaseId phaseId, AtomUI.Modularity.ModuleHostPhase requiredPhase, AtomUI.Modularity.ModulePhaseExecutionOrder executionOrder, System.Func<AtomUI.Modularity.ModulePhaseContext!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! phase, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), bool rollbackOnFailure = true) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.ModuleHost.Services.get -> AtomUI.Modularity.ModuleServiceRegistry!
+AtomUI.Modularity.ModuleHost.ShutdownAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.ModuleHost.Validate() -> AtomUI.Modularity.ModuleHostValidationResult!
+AtomUI.Modularity.ModuleHostLease
+AtomUI.Modularity.ModuleHostLease.Dispose() -> void
+AtomUI.Modularity.ModuleHostLease.View.get -> AtomUI.Modularity.ModuleHostView!
+AtomUI.Modularity.ModuleHostOptions
+AtomUI.Modularity.ModuleHostOptions.Diagnostics.get -> AtomUI.Modularity.IModuleDiagnostics?
+AtomUI.Modularity.ModuleHostOptions.Lifetime.get -> AtomUI.Modularity.IModuleHostLifetime?
+AtomUI.Modularity.ModuleHostOptions.Lifetime.init -> void
+AtomUI.Modularity.ModuleHostOptions.ModuleHostOptions(System.Collections.Generic.IEnumerable<System.Type!>? enabledModuleTypes = null, AtomUI.Modularity.IModuleDiagnostics? diagnostics = null) -> void
+AtomUI.Modularity.ModuleHostOptionsBuilder
+AtomUI.Modularity.ModuleHostOptionsBuilder.Build() -> AtomUI.Modularity.ModuleHostOptions!
+AtomUI.Modularity.ModuleHostOptionsBuilder.Enable<TModule>() -> AtomUI.Modularity.ModuleHostOptionsBuilder!
+AtomUI.Modularity.ModuleHostOptionsBuilder.ModuleHostOptionsBuilder() -> void
+AtomUI.Modularity.ModuleHostOptionsBuilder.UseDiagnostics(AtomUI.Modularity.IModuleDiagnostics! diagnostics) -> AtomUI.Modularity.ModuleHostOptionsBuilder!
+AtomUI.Modularity.ModuleHostOptionsBuilder.UseLifetime(AtomUI.Modularity.IModuleHostLifetime! lifetime) -> AtomUI.Modularity.ModuleHostOptionsBuilder!
+AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.ConfiguredServices = 4 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.Created = 0 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.Failed = 8 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.Initialized = 7 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.ModulesCreated = 2 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.PostConfiguredServices = 5 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.PreConfiguredServices = 3 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.Resolved = 1 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.ServicesFrozen = 6 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostPhase.Shutdown = 9 -> AtomUI.Modularity.ModuleHostPhase
+AtomUI.Modularity.ModuleHostResult
+AtomUI.Modularity.ModuleHostResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDiagnostic!>!
+AtomUI.Modularity.ModuleHostResult.IsSuccess.get -> bool
+AtomUI.Modularity.ModuleHostResult.ModuleHostResult(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDiagnostic!>? diagnostics = null) -> void
+AtomUI.Modularity.ModuleHostValidationResult
+AtomUI.Modularity.ModuleHostValidationResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDiagnostic!>!
+AtomUI.Modularity.ModuleHostValidationResult.IsSuccess.get -> bool
+AtomUI.Modularity.ModuleHostView
+AtomUI.Modularity.ModuleHostView.Generation.get -> long
+AtomUI.Modularity.ModuleHostView.ManagedServices.get -> AtomUI.Modularity.Services.ModuleServiceBindings?
+AtomUI.Modularity.ModuleHostView.Modules.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleEntry!>!
+AtomUI.Modularity.ModuleHostView.Registrations.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleRegistration!>!
+AtomUI.Modularity.ModuleHostView.Services.get -> AtomUI.Modularity.ModuleServiceRegistry!
+AtomUI.Modularity.ModuleHostView.State.get -> object?
+AtomUI.Modularity.ModuleId
+AtomUI.Modularity.ModuleId.Equals(AtomUI.Modularity.ModuleId other) -> bool
+AtomUI.Modularity.ModuleId.ModuleId() -> void
+AtomUI.Modularity.ModuleId.Value.get -> string!
+AtomUI.Modularity.ModuleInitializationContext
+AtomUI.Modularity.ModuleInitializationContext.Descriptor.get -> AtomUI.Modularity.ModuleDescriptor!
+AtomUI.Modularity.ModuleInitializationContext.Services.get -> AtomUI.Modularity.ModuleServiceRegistry!
+AtomUI.Modularity.ModulePhaseContext
+AtomUI.Modularity.ModulePhaseContext.Descriptor.get -> AtomUI.Modularity.ModuleDescriptor!
+AtomUI.Modularity.ModulePhaseContext.Services.get -> AtomUI.Modularity.ModuleServiceRegistry!
+AtomUI.Modularity.ModulePhaseExecutionOrder
+AtomUI.Modularity.ModulePhaseExecutionOrder.Forward = 0 -> AtomUI.Modularity.ModulePhaseExecutionOrder
+AtomUI.Modularity.ModulePhaseExecutionOrder.Reverse = 1 -> AtomUI.Modularity.ModulePhaseExecutionOrder
+AtomUI.Modularity.ModulePhaseId
+AtomUI.Modularity.ModulePhaseId.Equals(AtomUI.Modularity.ModulePhaseId other) -> bool
+AtomUI.Modularity.ModulePhaseId.ModulePhaseId() -> void
+AtomUI.Modularity.ModulePhaseId.Value.get -> string!
+AtomUI.Modularity.ModuleRegistration
+AtomUI.Modularity.ModuleRegistration.Descriptor.get -> AtomUI.Modularity.ModuleDescriptor!
+AtomUI.Modularity.ModuleRegistration.Factory.get -> System.Func<AtomUI.Modularity.IModule!>!
+AtomUI.Modularity.ModuleResolutionResult
+AtomUI.Modularity.ModuleResolutionResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDiagnostic!>!
+AtomUI.Modularity.ModuleResolutionResult.IsSuccess.get -> bool
+AtomUI.Modularity.ModuleResolutionResult.ModuleResolutionResult(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDescriptor!>? modules = null, System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDiagnostic!>? diagnostics = null) -> void
+AtomUI.Modularity.ModuleResolutionResult.Modules.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDescriptor!>!
+AtomUI.Modularity.ModuleResolutionResult.ThrowIfFailed() -> void
+AtomUI.Modularity.ModuleSerializedIdBoundaryAttribute
+AtomUI.Modularity.ModuleSerializedIdBoundaryAttribute.ModuleSerializedIdBoundaryAttribute() -> void
+AtomUI.Modularity.ModuleServiceCollection
+AtomUI.Modularity.ModuleServiceCollection.AddScoped<TService, TImplementation>() -> void
+AtomUI.Modularity.ModuleServiceCollection.AddSingleton<TService, TImplementation>() -> void
+AtomUI.Modularity.ModuleServiceCollection.AddSingleton<TService>(TService service) -> void
+AtomUI.Modularity.ModuleServiceCollection.AddTransient<TService, TImplementation>() -> void
+AtomUI.Modularity.ModuleServiceCollection.Clear() -> void
+AtomUI.Modularity.ModuleServiceCollection.Descriptors.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleServiceDescriptor!>!
+AtomUI.Modularity.ModuleServiceCollection.Freeze() -> void
+AtomUI.Modularity.ModuleServiceCollection.GetRequiredService<TService>() -> TService
+AtomUI.Modularity.ModuleServiceCollection.IsFrozen.get -> bool
+AtomUI.Modularity.ModuleServiceCollection.ModuleServiceCollection() -> void
+AtomUI.Modularity.ModuleServiceCollection.Remove<TService>() -> bool
+AtomUI.Modularity.ModuleServiceCollection.ReplaceSingleton<TService>(TService service) -> void
+AtomUI.Modularity.ModuleServiceConfigurationContext
+AtomUI.Modularity.ModuleServiceConfigurationContext.Descriptor.get -> AtomUI.Modularity.ModuleDescriptor!
+AtomUI.Modularity.ModuleServiceConfigurationContext.ManagedServices.get -> AtomUI.Modularity.Services.ModuleServiceBindings?
+AtomUI.Modularity.ModuleServiceConfigurationContext.Services.get -> AtomUI.Modularity.ModuleServiceCollection!
+AtomUI.Modularity.ModuleServiceDescriptor
+AtomUI.Modularity.ModuleServiceDescriptor.ImplementationType.get -> System.Type?
+AtomUI.Modularity.ModuleServiceDescriptor.Instance.get -> object?
+AtomUI.Modularity.ModuleServiceDescriptor.Lifetime.get -> AtomUI.Modularity.ModuleServiceLifetime
+AtomUI.Modularity.ModuleServiceDescriptor.ModuleServiceDescriptor(System.Type! serviceType, AtomUI.Modularity.ModuleServiceLifetime lifetime, System.Type? implementationType = null, object? instance = null) -> void
+AtomUI.Modularity.ModuleServiceDescriptor.ServiceType.get -> System.Type!
+AtomUI.Modularity.ModuleServiceLifetime
+AtomUI.Modularity.ModuleServiceLifetime.Scoped = 1 -> AtomUI.Modularity.ModuleServiceLifetime
+AtomUI.Modularity.ModuleServiceLifetime.Singleton = 0 -> AtomUI.Modularity.ModuleServiceLifetime
+AtomUI.Modularity.ModuleServiceLifetime.Transient = 2 -> AtomUI.Modularity.ModuleServiceLifetime
+AtomUI.Modularity.ModuleServiceRegistry
+AtomUI.Modularity.ModuleServiceRegistry.Descriptors.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleServiceDescriptor!>!
+AtomUI.Modularity.ModuleServiceRegistry.GetRequiredService<TService>() -> TService
+AtomUI.Modularity.ModuleServiceRegistry.IsFrozen.get -> bool
+AtomUI.Modularity.ModuleShutdownContext
+AtomUI.Modularity.ModuleShutdownContext.Descriptor.get -> AtomUI.Modularity.ModuleDescriptor!
+AtomUI.Modularity.ModuleShutdownContext.Services.get -> AtomUI.Modularity.ModuleServiceRegistry!
+AtomUI.Modularity.Services.ModuleServiceActivationContext
+AtomUI.Modularity.Services.ModuleServiceActivationContext.GetRequiredService<T>() -> T!
+AtomUI.Modularity.Services.ModuleServiceBindings
+AtomUI.Modularity.Services.ModuleServiceBindings.AddScopedFactory<T>(AtomUI.Modularity.ModuleId owner, System.Func<AtomUI.Modularity.Services.ModuleServiceActivationContext!, T!>! factory, System.Func<T!, System.Threading.Tasks.ValueTask>! release, System.Action<T!>? stop = null, params System.Type![]! dependencies) -> void
+AtomUI.Modularity.Services.ModuleServiceBindings.AddSingletonFactory<T>(AtomUI.Modularity.ModuleId owner, System.Func<AtomUI.Modularity.Services.ModuleServiceActivationContext!, T!>! factory, System.Func<T!, System.Threading.Tasks.ValueTask>! release, System.Action<T!>? stop = null, params System.Type![]! dependencies) -> void
+AtomUI.Modularity.Services.ModuleServiceBindings.AddTransientFactory<T>(AtomUI.Modularity.ModuleId owner, System.Func<AtomUI.Modularity.Services.ModuleServiceActivationContext!, T!>! factory, System.Func<T!, System.Threading.Tasks.ValueTask>! release, System.Action<T!>? stop = null, params System.Type![]! dependencies) -> void
+AtomUI.Modularity.Services.ModuleServiceBindings.BeginRetirement() -> AtomUI.Lifetimes.LifetimeRetirement!
+AtomUI.Modularity.Services.ModuleServiceBindings.BindScope(AtomUI.Modularity.Services.ModuleServiceScope! source) -> AtomUI.Modularity.Services.ModuleServiceScope!
+AtomUI.Modularity.Services.ModuleServiceBindings.CompleteRetirement() -> AtomUI.Lifetimes.LifetimeRetirement!
+AtomUI.Modularity.Services.ModuleServiceBindings.Freeze() -> void
+AtomUI.Modularity.Services.ModuleServiceBindings.Retirement.get -> AtomUI.Lifetimes.LifetimeRetirement?
+AtomUI.Modularity.Services.ModuleServiceBindings.Root.get -> AtomUI.Modularity.Services.ModuleServiceScope!
+AtomUI.Modularity.Services.ModuleServiceBindings.Runtime.get -> AtomUI.Modularity.Services.ModuleServiceRuntime!
+AtomUI.Modularity.Services.ModuleServiceBindings.Stop() -> void
+AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes
+AtomUI.Modularity.Services.ModuleServiceRuntime
+AtomUI.Modularity.Services.ModuleServiceRuntime.AddScopedFactory<T>(AtomUI.Modularity.ModuleId owner, System.Func<AtomUI.Modularity.Services.ModuleServiceActivationContext!, T!>! factory, System.Func<T!, System.Threading.Tasks.ValueTask>! release, System.Action<T!>? stop = null, params System.Type![]! dependencies) -> void
+AtomUI.Modularity.Services.ModuleServiceRuntime.AddSingletonFactory<T>(AtomUI.Modularity.ModuleId owner, System.Func<AtomUI.Modularity.Services.ModuleServiceActivationContext!, T!>! factory, System.Func<T!, System.Threading.Tasks.ValueTask>! release, System.Action<T!>? stop = null, params System.Type![]! dependencies) -> void
+AtomUI.Modularity.Services.ModuleServiceRuntime.AddTransientFactory<T>(AtomUI.Modularity.ModuleId owner, System.Func<AtomUI.Modularity.Services.ModuleServiceActivationContext!, T!>! factory, System.Func<T!, System.Threading.Tasks.ValueTask>! release, System.Action<T!>? stop = null, params System.Type![]! dependencies) -> void
+AtomUI.Modularity.Services.ModuleServiceRuntime.Bindings.get -> AtomUI.Modularity.Services.ModuleServiceBindings!
+AtomUI.Modularity.Services.ModuleServiceRuntime.CompleteShutdownAsync() -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.Services.ModuleServiceRuntime.CreateCandidate(AtomUI.Modularity.Services.ModuleServiceBindings! baseline, System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleId>! removedModules) -> AtomUI.Modularity.Services.ModuleServiceBindings!
+AtomUI.Modularity.Services.ModuleServiceRuntime.DisposeAsync() -> System.Threading.Tasks.ValueTask
+AtomUI.Modularity.Services.ModuleServiceRuntime.Freeze() -> void
+AtomUI.Modularity.Services.ModuleServiceRuntime.Lifetimes.get -> AtomUI.Lifetimes.LifetimeDomain!
+AtomUI.Modularity.Services.ModuleServiceRuntime.ModuleServiceRuntime() -> void
+AtomUI.Modularity.Services.ModuleServiceRuntime.PrepareTransition(AtomUI.Modularity.Services.ModuleServiceBindings! previous, AtomUI.Modularity.Services.ModuleServiceBindings! next) -> AtomUI.Modularity.Services.ModuleServiceTransition!
+AtomUI.Modularity.Services.ModuleServiceRuntime.Root.get -> AtomUI.Modularity.Services.ModuleServiceScope!
+AtomUI.Modularity.Services.ModuleServiceRuntime.ServiceRuntime.get -> AtomUI.Modularity.Services.ModuleServiceRuntime!
+AtomUI.Modularity.Services.ModuleServiceRuntime.Stop() -> void
+AtomUI.Modularity.Services.ModuleServiceScope
+AtomUI.Modularity.Services.ModuleServiceScope.BeginRetirement() -> AtomUI.Lifetimes.LifetimeRetirement!
+AtomUI.Modularity.Services.ModuleServiceScope.Borrow<T>() -> AtomUI.Lifetimes.LifetimeLease<T!>!
+AtomUI.Modularity.Services.ModuleServiceScope.CreateScope() -> AtomUI.Modularity.Services.ModuleServiceScope!
+AtomUI.Modularity.Services.ModuleServiceScope.DisposeAsync() -> System.Threading.Tasks.ValueTask
+AtomUI.Modularity.Services.ModuleServiceScope.ShareFrom<T>(AtomUI.Modularity.Services.ModuleServiceScope! source) -> void
+AtomUI.Modularity.Services.ModuleServiceShutdownException
+AtomUI.Modularity.Services.ModuleServiceShutdownException.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDiagnostic!>!
+AtomUI.Modularity.Services.ModuleServiceShutdownException.ModuleServiceShutdownException(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDiagnostic!>! diagnostics) -> void
+AtomUI.Modularity.Services.ModuleServiceTransition
+AtomUI.Modularity.Services.ModuleServiceTransition.AffectedModules.get -> System.Collections.Generic.IReadOnlySet<AtomUI.Modularity.ModuleId>!
+AtomUI.Modularity.Services.ModuleServiceTransition.CompleteRetirement() -> AtomUI.Lifetimes.LifetimeRetirement!
+AtomUI.Modularity.Services.ModuleServiceTransition.Dispose() -> void
+AtomUI.Modularity.Services.ModuleServiceTransition.Retirement.get -> AtomUI.Lifetimes.LifetimeRetirement?
+AtomUI.Modularity.Services.ModuleServiceTransition.Stop() -> void
+AtomUI.Modularity.Services.ModuleServiceValidationException
+AtomUI.Modularity.Services.ModuleServiceValidationException.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDiagnostic!>!
+AtomUI.Modularity.Services.ModuleServiceValidationException.ModuleServiceValidationException(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDiagnostic!>! diagnostics) -> void
+abstract AtomUI.Modularity.ModuleChangePreparation.State.get -> object?
+const AtomUI.Foundation.FoundationAssemblyMarker.AssemblyName = "AtomUI.Foundation" -> string!
+const AtomUI.Modularity.ModuleDiagnosticCodes.DependencyCycle = "ATOMUIMOD003" -> string!
+const AtomUI.Modularity.ModuleDiagnosticCodes.DiagnosticsObserverFailed = "ATOMUIMOD010" -> string!
+const AtomUI.Modularity.ModuleDiagnosticCodes.DuplicateModuleId = "ATOMUIMOD001" -> string!
+const AtomUI.Modularity.ModuleDiagnosticCodes.InvalidLifecycleTransition = "ATOMUIMOD009" -> string!
+const AtomUI.Modularity.ModuleDiagnosticCodes.ModuleLifecycleFailed = "ATOMUIMOD007" -> string!
+const AtomUI.Modularity.ModuleDiagnosticCodes.RequiredDependencyMissing = "ATOMUIMOD002" -> string!
+const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.CleanupFailed = "ATOMUISVC005" -> string!
+const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.DependencyCycle = "ATOMUISVC002" -> string!
+const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.OwnerRetainedAfterCleanupFailure = "ATOMUISVC006" -> string!
+const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.RequiredDependencyMissing = "ATOMUISVC001" -> string!
+const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.SingletonCapturesScoped = "ATOMUISVC003" -> string!
+override AtomUI.Lifetimes.LifetimeFailure.Equals(object? obj) -> bool
+override AtomUI.Lifetimes.LifetimeFailure.GetHashCode() -> int
+override AtomUI.Lifetimes.LifetimeFailure.ToString() -> string!
+override AtomUI.Lifetimes.LifetimeOwnerSnapshot.Equals(object? obj) -> bool
+override AtomUI.Lifetimes.LifetimeOwnerSnapshot.GetHashCode() -> int
+override AtomUI.Lifetimes.LifetimeOwnerSnapshot.ToString() -> string!
+override AtomUI.Modularity.ModuleDiagnostic.Equals(object? obj) -> bool
+override AtomUI.Modularity.ModuleDiagnostic.GetHashCode() -> int
+override AtomUI.Modularity.ModuleDiagnostic.ToString() -> string!
+~override AtomUI.Modularity.ModuleId.Equals(object obj) -> bool
+override AtomUI.Modularity.ModuleId.GetHashCode() -> int
+override AtomUI.Modularity.ModuleId.ToString() -> string!
+~override AtomUI.Modularity.ModulePhaseId.Equals(object obj) -> bool
+override AtomUI.Modularity.ModulePhaseId.GetHashCode() -> int
+override AtomUI.Modularity.ModulePhaseId.ToString() -> string!
+static AtomUI.Lifetimes.LifetimeFailure.operator !=(AtomUI.Lifetimes.LifetimeFailure? left, AtomUI.Lifetimes.LifetimeFailure? right) -> bool
+static AtomUI.Lifetimes.LifetimeFailure.operator ==(AtomUI.Lifetimes.LifetimeFailure? left, AtomUI.Lifetimes.LifetimeFailure? right) -> bool
+static AtomUI.Lifetimes.LifetimeOwnerSnapshot.operator !=(AtomUI.Lifetimes.LifetimeOwnerSnapshot? left, AtomUI.Lifetimes.LifetimeOwnerSnapshot? right) -> bool
+static AtomUI.Lifetimes.LifetimeOwnerSnapshot.operator ==(AtomUI.Lifetimes.LifetimeOwnerSnapshot? left, AtomUI.Lifetimes.LifetimeOwnerSnapshot? right) -> bool
+static AtomUI.Modularity.ModuleCatalog.Empty.get -> AtomUI.Modularity.ModuleCatalog!
+static AtomUI.Modularity.ModuleDependencyDescriptor.Required(System.Type! moduleType) -> AtomUI.Modularity.ModuleDependencyDescriptor!
+static AtomUI.Modularity.ModuleDependencyDescriptor.Required<TModule>() -> AtomUI.Modularity.ModuleDependencyDescriptor!
+static AtomUI.Modularity.ModuleDependencyGraph.Resolve(AtomUI.Modularity.ModuleCatalog! catalog) -> AtomUI.Modularity.ModuleDependencyGraph!
+static AtomUI.Modularity.ModuleDependencyGraph.Resolve(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDescriptor!>! modules) -> AtomUI.Modularity.ModuleDependencyGraph!
+static AtomUI.Modularity.ModuleDependencyGraph.TryResolve(AtomUI.Modularity.ModuleCatalog! catalog) -> AtomUI.Modularity.ModuleResolutionResult!
+static AtomUI.Modularity.ModuleDependencyGraph.TryResolve(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDescriptor!>! modules) -> AtomUI.Modularity.ModuleResolutionResult!
+static AtomUI.Modularity.ModuleDescriptor.For<TModule>(string! displayName, System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDependencyDescriptor!>? dependencies = null) -> AtomUI.Modularity.ModuleDescriptor!
+static AtomUI.Modularity.ModuleDiagnostic.operator !=(AtomUI.Modularity.ModuleDiagnostic? left, AtomUI.Modularity.ModuleDiagnostic? right) -> bool
+static AtomUI.Modularity.ModuleDiagnostic.operator ==(AtomUI.Modularity.ModuleDiagnostic? left, AtomUI.Modularity.ModuleDiagnostic? right) -> bool
+static AtomUI.Modularity.ModuleHostResult.Success.get -> AtomUI.Modularity.ModuleHostResult!
+static AtomUI.Modularity.ModuleHostValidationResult.Fail(params AtomUI.Modularity.ModuleDiagnostic![]! diagnostics) -> AtomUI.Modularity.ModuleHostValidationResult!
+static AtomUI.Modularity.ModuleHostValidationResult.Success.get -> AtomUI.Modularity.ModuleHostValidationResult!
+static AtomUI.Modularity.ModuleId.FromModuleType(System.Type! moduleType) -> AtomUI.Modularity.ModuleId
+static AtomUI.Modularity.ModuleId.FromModuleType<TModule>() -> AtomUI.Modularity.ModuleId
+static AtomUI.Modularity.ModuleId.FromSerializedValue(string! value) -> AtomUI.Modularity.ModuleId
+static AtomUI.Modularity.ModuleId.operator !=(AtomUI.Modularity.ModuleId left, AtomUI.Modularity.ModuleId right) -> bool
+static AtomUI.Modularity.ModuleId.operator ==(AtomUI.Modularity.ModuleId left, AtomUI.Modularity.ModuleId right) -> bool
+static AtomUI.Modularity.ModulePhaseId.FromSerializedValue(string! value) -> AtomUI.Modularity.ModulePhaseId
+static AtomUI.Modularity.ModulePhaseId.FromType(System.Type! phaseType) -> AtomUI.Modularity.ModulePhaseId
+static AtomUI.Modularity.ModulePhaseId.FromType<TPhase>() -> AtomUI.Modularity.ModulePhaseId
+static AtomUI.Modularity.ModulePhaseId.operator !=(AtomUI.Modularity.ModulePhaseId left, AtomUI.Modularity.ModulePhaseId right) -> bool
+static AtomUI.Modularity.ModulePhaseId.operator ==(AtomUI.Modularity.ModulePhaseId left, AtomUI.Modularity.ModulePhaseId right) -> bool
+static AtomUI.Modularity.ModuleRegistration.For<TModule>(AtomUI.Modularity.ModuleDescriptor! descriptor, System.Func<TModule>! factory) -> AtomUI.Modularity.ModuleRegistration!
+virtual AtomUI.Modularity.ModuleBase.ConfigureServices(AtomUI.Modularity.ModuleServiceConfigurationContext! context) -> void
+virtual AtomUI.Modularity.ModuleBase.ConfigureServicesAsync(AtomUI.Modularity.ModuleServiceConfigurationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+virtual AtomUI.Modularity.ModuleBase.Initialize(AtomUI.Modularity.ModuleInitializationContext! context) -> void
+virtual AtomUI.Modularity.ModuleBase.InitializeAsync(AtomUI.Modularity.ModuleInitializationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+virtual AtomUI.Modularity.ModuleBase.PostConfigureServices(AtomUI.Modularity.ModuleServiceConfigurationContext! context) -> void
+virtual AtomUI.Modularity.ModuleBase.PostConfigureServicesAsync(AtomUI.Modularity.ModuleServiceConfigurationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+virtual AtomUI.Modularity.ModuleBase.PreConfigureServices(AtomUI.Modularity.ModuleServiceConfigurationContext! context) -> void
+virtual AtomUI.Modularity.ModuleBase.PreConfigureServicesAsync(AtomUI.Modularity.ModuleServiceConfigurationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+virtual AtomUI.Modularity.ModuleBase.Shutdown(AtomUI.Modularity.ModuleShutdownContext! context) -> void
+virtual AtomUI.Modularity.ModuleBase.ShutdownAsync(AtomUI.Modularity.ModuleShutdownContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+virtual AtomUI.Modularity.ModuleChangePreparation.AbortAsync() -> System.Threading.Tasks.ValueTask
+virtual AtomUI.Modularity.ModuleChangePreparation.AffectedModules.get -> System.Collections.Generic.IReadOnlyCollection<AtomUI.Modularity.ModuleId>!
+virtual AtomUI.Modularity.ModuleChangePreparation.CompletePreviousAsync() -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+virtual AtomUI.Modularity.ModuleChangePreparation.ResumeAsync() -> System.Threading.Tasks.ValueTask
+virtual AtomUI.Modularity.ModuleChangePreparation.StopPrevious() -> void
+virtual AtomUI.Modularity.ModuleChangePreparation.SuspendAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
