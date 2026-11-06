@@ -14,6 +14,53 @@ public sealed class ModuleServiceScope : IAsyncDisposable
         internal LifetimeScope Owners = owners;
         internal bool IsRoot = isRoot;
         internal object Origin = origin;
+        internal ScopeRegistration? Registration;
+        internal LifetimeRetirement? Retirement;
+        private TaskCompletionSource<LifetimeRetirement[]>? _retirementSource;
+
+        // Called under Runtime.Gate. Binding wrappers share this one receipt and registration.
+        internal LifetimeRetirement PrepareRetirement()
+        {
+            if (Retirement is not null) return Retirement;
+            _retirementSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            return Retirement = LifetimeRetirement.Aggregate(_retirementSource.Task, result =>
+            {
+                if (result.IsSuccess) Registration?.Remove();
+            });
+        }
+
+        internal void StartRetirement()
+        {
+            // Lifetime callbacks and the receipt's service-index cleanup run without state locks.
+            var source = Owners.BeginRetirement();
+            _retirementSource!.TrySetResult([source]);
+        }
+
+        internal void RemoveCached(ServiceRegistration registration)
+        {
+            lock (Gate) Instances.Remove(registration);
+        }
+    }
+
+    internal sealed class ScopeRegistration(object gate, List<ScopeState> scopes, HashSet<ScopeState> liveScopes, ScopeState state)
+    {
+        private List<ScopeState>? _scopes = scopes;
+        private HashSet<ScopeState>? _liveScopes = liveScopes;
+        private ScopeState? _state = state;
+
+        internal void Remove()
+        {
+            lock (gate)
+            {
+                if (_scopes is null) return;
+                _scopes.Remove(_state!);
+                _liveScopes!.Remove(_state!);
+                _state!.Registration = null;
+                _state = null;
+                _scopes = null;
+                _liveScopes = null;
+            }
+        }
     }
     private readonly ScopeState _state;
     private readonly ModuleServiceBindings _bindings;
@@ -112,7 +159,11 @@ public sealed class ModuleServiceScope : IAsyncDisposable
     public LifetimeRetirement BeginRetirement()
     {
         lock (_gate) _state.Closing = true;
-        return _isRoot ? Runtime.Lifetimes.BeginRetirement() : Owners.BeginRetirement();
+        if (_isRoot) return Runtime.Lifetimes.BeginRetirement();
+        LifetimeRetirement retirement;
+        lock (Runtime.Gate) retirement = _state.PrepareRetirement();
+        _state.StartRetirement();
+        return retirement;
     }
 
     public async ValueTask DisposeAsync()
@@ -166,10 +217,7 @@ public sealed class ModuleServiceScope : IAsyncDisposable
         }
     }
 
-    internal void RemoveCached(ServiceRegistration registration)
-    {
-        lock (_gate) _instances.Remove(registration);
-    }
+    internal void RemoveCached(ServiceRegistration registration) => _state.RemoveCached(registration);
 
     private void EnsureOpen() => ObjectDisposedException.ThrowIf(_state.Closing || Owners.IsRetiring, this);
     private sealed class ScopeLink;

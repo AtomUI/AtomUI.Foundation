@@ -1,6 +1,6 @@
 <Project>
     <PropertyGroup>
         <NoWarn>$(NoWarn);CS7035</NoWarn>
-        <AtomUIFoundationVersion>1.0.3</AtomUIFoundationVersion>
+        <AtomUIFoundationVersion>1.0.4-local.1</AtomUIFoundationVersion>
     </PropertyGroup>
 </Project>

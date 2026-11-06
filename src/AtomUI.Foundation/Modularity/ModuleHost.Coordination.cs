@@ -157,6 +157,16 @@ public sealed partial class ModuleHost
         }
         catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "Stop")); }
 
+        RecoveryFailure? recovery;
+        lock (_stateLock) { recovery = _recoveryFailure; _recoveryFailure = null; }
+        if (recovery is not null)
+        {
+            diagnostics.AddRange(recovery.Diagnostics);
+            // Global Stop has closed runtime admission. It is now safe to return
+            // the recoverable suspension without admitting new service work.
+            recovery.Services?.Dispose();
+        }
+
         diagnostics.AddRange((await CleanupEntriesAsync(_enabledModules, Services).ConfigureAwait(false)).Diagnostics);
 
         if (_options.Lifetime is not null)

@@ -44,6 +44,9 @@ public sealed class LifetimeCloseResult
 
 public sealed class LifetimeRetirement
 {
+    private readonly Task<LifetimeCloseResult>? _completion;
+    private readonly Task<LifetimeCloseResult>? _finalCompletion;
+
     internal LifetimeRetirement(IEnumerable<LifetimeOwner> owners)
     {
         Members = owners.ToArray();
@@ -59,8 +62,41 @@ public sealed class LifetimeRetirement
     internal readonly TaskCompletionSource<LifetimeCloseResult> Initial = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal readonly TaskCompletionSource<LifetimeCloseResult> Final = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public Task<LifetimeCloseResult> Completion => Initial.Task;
-    public Task<LifetimeCloseResult> FinalCompletion => Final.Task;
+    private LifetimeRetirement(Task<LifetimeRetirement[]> sources, Action<LifetimeCloseResult>? beforeFinal)
+        : this(Array.Empty<LifetimeOwner>())
+    {
+        _completion = AggregateAsync(sources, final: false, null);
+        _finalCompletion = AggregateAsync(sources, final: true, beforeFinal);
+    }
+
+    // The returned tasks own aggregation and final bookkeeping. Domain batches remain the
+    // only release authority; callers must connect sources outside lifetime/service locks.
+    internal static LifetimeRetirement Aggregate(Task<LifetimeRetirement[]> sources,
+        Action<LifetimeCloseResult>? beforeFinal = null) => new(sources, beforeFinal);
+
+    internal static LifetimeCloseResult Combine(IEnumerable<LifetimeCloseResult> results)
+    {
+        var snapshots = results.ToArray();
+        return new LifetimeCloseResult(
+            Array.AsReadOnly(snapshots.SelectMany(result => result.Owners).GroupBy(owner => owner.Id)
+                .Select(group => group.Last()).ToArray()),
+            Array.AsReadOnly(snapshots.SelectMany(result => result.Failures).Distinct().ToArray()));
+    }
+
+    private static async Task<LifetimeCloseResult> AggregateAsync(Task<LifetimeRetirement[]> sources,
+        bool final, Action<LifetimeCloseResult>? beforeFinal)
+    {
+        var tickets = await sources.ConfigureAwait(false);
+        var results = await Task.WhenAll(tickets.Select(ticket => final ? ticket.FinalCompletion : ticket.Completion))
+            .ConfigureAwait(false);
+        var result = Combine(results);
+        beforeFinal?.Invoke(result);
+        beforeFinal = null;
+        return result;
+    }
+
+    public Task<LifetimeCloseResult> Completion => _completion ?? Initial.Task;
+    public Task<LifetimeCloseResult> FinalCompletion => _finalCompletion ?? Final.Task;
 
     internal bool CompleteFinal(LifetimeCloseResult result)
     {

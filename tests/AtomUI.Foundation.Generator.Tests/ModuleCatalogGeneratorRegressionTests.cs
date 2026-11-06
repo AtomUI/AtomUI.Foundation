@@ -1,5 +1,6 @@
 using AtomUI.Modularity.Generators;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Shouldly;
 using Xunit;
 
@@ -7,6 +8,185 @@ namespace AtomUI.Foundation.Generator.Tests;
 
 public class ModuleCatalogGeneratorRegressionTests
 {
+    [Fact]
+    public void Null_dependency_array_is_an_empty_dependency_list()
+    {
+        var result = GeneratorTestHost.RunGenerator("""
+            using AtomUI.Modularity;
+            [Module(Dependencies = null)]
+            public sealed class FeatureModule : ModuleBase { }
+            """, new ModuleCatalogGenerator());
+
+        result.Diagnostics.ShouldBeEmpty();
+        result.CompilationDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .ShouldBeEmpty();
+        RequiredTypeArguments(result).ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("null", 1)]
+    [InlineData("typeof(int[])", 1)]
+    [InlineData("null, typeof(int[]), typeof(string)", 3)]
+    public void Invalid_dependency_entries_are_all_diagnosed_at_the_attribute(string entries, int expectedCount)
+    {
+        var source = $$"""
+            using AtomUI.Modularity;
+            [Module(Dependencies = [{{entries}}])]
+            public sealed class FeatureModule : ModuleBase { }
+            """;
+        var result = GeneratorTestHost.RunGeneratorAllowingDiagnostics(source, new ModuleCatalogGenerator());
+
+        var diagnostics = result.Diagnostics.Where(diagnostic => diagnostic.Id == "ATOMUIMODGEN004").ToArray();
+        diagnostics.Length.ShouldBe(expectedCount);
+        foreach (var diagnostic in diagnostics)
+        {
+            diagnostic.Severity.ShouldBe(DiagnosticSeverity.Error);
+            source.Substring(diagnostic.Location.SourceSpan.Start, diagnostic.Location.SourceSpan.Length)
+                .ShouldBe($"Module(Dependencies = [{entries}])");
+        }
+
+        result.GeneratedSources.ShouldBeEmpty();
+        result.CompilationDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void External_alias_dependencies_preserve_the_assembly_bound_by_the_attribute(
+        bool includeGlobalNamesake, bool dependOnGlobalNamesake)
+    {
+        const string externalSource = """
+            using AtomUI.Modularity;
+            namespace External;
+            [Module]
+            public class CoreModule : ModuleBase { }
+            """;
+        var references = new List<MetadataReference>
+        {
+            GeneratorTestHost.CreateReference(externalSource, "AuditExternal")
+                .WithProperties(MetadataReferenceProperties.Assembly.WithAliases(["ext"]))
+        };
+        if (includeGlobalNamesake)
+        {
+            references.Add(GeneratorTestHost.CreateReference(externalSource, "AuditGlobalOther"));
+        }
+
+        var dependencies = dependOnGlobalNamesake
+            ? "typeof(ext::External.CoreModule), typeof(global::External.CoreModule)"
+            : "typeof(ext::External.CoreModule)";
+        var result = GeneratorTestHost.RunGenerator($$"""
+            extern alias ext;
+            using AtomUI.Modularity;
+            namespace Consumer;
+            [Module(Dependencies = new[] { {{dependencies}} })]
+            public sealed class ConsumerModule : ModuleBase { }
+            """, new ModuleCatalogGenerator(), references.ToArray());
+
+        result.Diagnostics.ShouldBeEmpty();
+        result.CompilationDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .ShouldBeEmpty();
+        var attribute = result.OutputCompilation.GetTypeByMetadataName("Consumer.ConsumerModule")!
+            .GetAttributes().Single();
+        var originalTypes = attribute.NamedArguments.Single().Value.Values
+            .Select(value => (ITypeSymbol)value.Value!).ToArray();
+        var generatedTypes = RequiredTypeArguments(result);
+        generatedTypes.Length.ShouldBe(originalTypes.Length);
+        foreach (var original in originalTypes)
+        {
+            generatedTypes.Count(generated => SymbolEqualityComparer.Default.Equals(original, generated))
+                .ShouldBe(1);
+        }
+
+        generatedTypes.Select(type => type.ContainingAssembly.Name).OrderBy(name => name)
+            .ShouldBe(dependOnGlobalNamesake ? ["AuditExternal", "AuditGlobalOther"] : ["AuditExternal"]);
+    }
+
+    private static ITypeSymbol[] RequiredTypeArguments(GeneratorRunResult result)
+    {
+        return result.OutputCompilation.SyntaxTrees
+            .Where(tree => tree.FilePath.EndsWith("ModuleGeneratedCatalog.g.cs", StringComparison.Ordinal))
+            .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>()
+                .Where(invocation => invocation.Expression is MemberAccessExpressionSyntax
+                {
+                    Name: GenericNameSyntax { Identifier.ValueText: "Required" }
+                })
+                .Select(invocation => ((IMethodSymbol)result.OutputCompilation.GetSemanticModel(tree)
+                    .GetSymbolInfo(invocation).Symbol!).TypeArguments.Single()))
+            .ToArray();
+    }
+
+    [Fact]
+    public void Source_dependency_identity_survives_a_shadowed_reference_with_the_same_full_name()
+    {
+        const string source = """
+            using AtomUI.Modularity;
+            namespace External;
+            [Module]
+            public class CoreModule : ModuleBase { }
+            [Module(Dependencies = [typeof(CoreModule)])]
+            public class ConsumerModule : ModuleBase { }
+            """;
+        var reference = GeneratorTestHost.CreateReference("""
+            using AtomUI.Modularity;
+            namespace External;
+            [Module]
+            public class CoreModule : ModuleBase { }
+            """, "ShadowedExternal");
+        var result = GeneratorTestHost.RunGenerator(source, new ModuleCatalogGenerator(), reference);
+
+        result.Diagnostics.ShouldBeEmpty();
+        result.CompilationDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .ShouldBeEmpty();
+        RequiredTypeArguments(result).Single().ContainingAssembly.Name.ShouldBe("ModularityGeneratorTest");
+    }
+
+    [Theory]
+    [InlineData("int[][,]")]
+    [InlineData("int[,][]")]
+    public void Closed_external_generic_dependency_preserves_mixed_array_rank_identity(string argumentType)
+    {
+        var reference = GeneratorTestHost.CreateReference("""
+            using AtomUI.Modularity;
+            namespace External;
+            [Module]
+            public class GenericModule<T> : ModuleBase { }
+            """, "ExternalGeneric");
+        var result = GeneratorTestHost.RunGenerator($$"""
+            using AtomUI.Modularity;
+            [Module(Dependencies = [typeof(External.GenericModule<{{argumentType}}>)])]
+            public class ConsumerModule : ModuleBase { }
+            """, new ModuleCatalogGenerator(), reference);
+
+        result.Diagnostics.ShouldBeEmpty();
+        result.CompilationDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .ShouldBeEmpty();
+        var originalType = (ITypeSymbol)result.OutputCompilation.GetTypeByMetadataName("ConsumerModule")!
+            .GetAttributes().Single().NamedArguments.Single().Value.Values.Single().Value!;
+        SymbolEqualityComparer.Default.Equals(RequiredTypeArguments(result).Single(), originalType).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Keyword_namespace_dependency_uses_raw_metadata_names_and_escaped_source_names()
+    {
+        var result = GeneratorTestHost.RunGenerator("""
+            using AtomUI.Modularity;
+            namespace @event.@class;
+            [Module]
+            public class CoreModule : ModuleBase { }
+            [Module(Dependencies = [typeof(CoreModule)])]
+            public class ConsumerModule : ModuleBase { }
+            """, new ModuleCatalogGenerator());
+
+        result.Diagnostics.ShouldBeEmpty();
+        result.CompilationDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .ShouldBeEmpty();
+        var originalType = (ITypeSymbol)result.OutputCompilation.GetTypeByMetadataName("event.class.ConsumerModule")!
+            .GetAttributes().Single().NamedArguments.Single().Value.Values.Single().Value!;
+        SymbolEqualityComparer.Default.Equals(RequiredTypeArguments(result).Single(), originalType).ShouldBeTrue();
+    }
+
     [Fact]
     public void Other_attributed_partial_declarations_do_not_duplicate_a_module()
     {

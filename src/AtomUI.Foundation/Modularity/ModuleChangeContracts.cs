@@ -69,6 +69,7 @@ public sealed class ModuleChangeRetirement
         _retainedResources = retainedResources;
     }
     internal void ForgetReleasedResources() => _retainedResources = null;
+    internal void RetainResources(object resources) => _retainedResources = resources;
     public Task<ModuleHostResult> FinalCompletion { get; }
     public LifetimeRetirement? ManagedRetirement
     {

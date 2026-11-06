@@ -1,0 +1,379 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-04",
+  "baselineCommit": "0d0a361cdef64f0000f19bb6ac5a8263c3b8e8aa",
+  "branch": "release/1.0",
+  "status": "implemented-and-qualified-in-uncommitted-worktree",
+  "committed": false,
+  "published": false,
+  "scope": {
+    "originalScopeRetention": "verified",
+    "companionFailedScopeAggregation": "verified",
+    "auditItems": {
+      "A01": "verified",
+      "A02": "verified",
+      "A03": "verified",
+      "A04": "verified",
+      "A05": "verified",
+      "A06": "verified",
+      "A07": "verified",
+      "A08": "verified"
+    },
+    "excludedProtocolQualificationItems": [
+      "R01",
+      "R02",
+      "R03",
+      "R04"
+    ]
+  },
+  "sourceFingerprint": "18d7b12e3343ce13d709cb184f7d563d9d0a16974aada3d875eda14296d7e685",
+  "fingerprintAlgorithm": "SHA256 of sorted relative product paths followed by their raw bytes; manifest below records each file hash.",
+  "productFiles": {
+    "Directory.Build.props": "234e81c50fa0e297c557dfe94a5585e09845ebb66427592fcb31083c85966863",
+    "Directory.Build.targets": "915cf3a3012ac8e094413a40be4b5a5350a9aae33343cb9eb2f826ecf756c794",
+    "Directory.Packages.props": "723975506e34c27669363c19ae6a72c7da1bc95bd20f9da56eac92b5b98ccb5d",
+    "build/Common.props": "b62f4f5491a253f0cdcc1271d01d1fc11caa38c5618ff2814c334fa7e372bb1c",
+    "build/Output.props": "0051c80d1b6ab5b9435c8efefaaf0fb58aec682f40735e027e064e1f01b825f6",
+    "build/PackageMetaInfo.props": "5a3993d39a9838aafc1e5ac22a106444eaf389c67b36a1d3cc40dddcafe435fd",
+    "build/Version.props": "1020909d414931c2a154251dbf87bf58a9e5518b8a58f1de1ef309dcb3662816",
+    "src/AtomUI.Foundation/AtomUI.Foundation.csproj": "c7678b55b1fc2ffb16498aa929663cfb95e8c1472a06536d5522d221239dd30e",
+    "src/AtomUI.Foundation/FoundationAssemblyMarker.cs": "9f6f5ecfdb1717df690af78a7a09e2ae2abf929a8f89dfd1b9d04af2745836b7",
+    "src/AtomUI.Foundation/Lifetimes/LifetimeContracts.cs": "7d328dc4e19e13c0eacda6454e9781f4426398bbe5ea42c79c720a425a743139",
+    "src/AtomUI.Foundation/Lifetimes/LifetimeDomain.cs": "587c024849f5d9bf2d1378d2ae29c865d45471316b3f891cdd6c7f47fa74f426",
+    "src/AtomUI.Foundation/Lifetimes/LifetimeOwner.cs": "34ac03afc397ac3e178b0621ac3b6fcfd3a00770cff9df5f8485df781edcd8a9",
+    "src/AtomUI.Foundation/Lifetimes/LifetimeScope.cs": "3457cbf93a29d59b12bc5fc83136c7999240269e97566a073ad8e8fc9c62b53c",
+    "src/AtomUI.Foundation/Lifetimes/LifetimeSuspension.cs": "5f6eafba11f9c31417585512369131954b09b3e133692055844e483b02e62bc4",
+    "src/AtomUI.Foundation/Modularity/IModule.cs": "09298602ff97ae7fdbf5830effb2c9269ffdf315540e7a0f9b815d02a2076bdd",
+    "src/AtomUI.Foundation/Modularity/IModuleDiagnostics.cs": "a7f05ad86c2c80a09f3ffa18084e25f4c942ec23b41cfa583da4d571d0c95773",
+    "src/AtomUI.Foundation/Modularity/IModuleHostLifetime.cs": "04ce66c7984e93bad0b2eeae5e7469fe3b4cfc9ae2ad1ac8f5efca8c2e8a68ac",
+    "src/AtomUI.Foundation/Modularity/IModuleHostReconfigurationLifetime.cs": "d2f72fbc66fce0a5907acbb7289bf6404e3ca70a6b52fa582c9d669a3ba03bad",
+    "src/AtomUI.Foundation/Modularity/ModuleAttribute.cs": "968f0299d0c2be40d039f24a346668990d2d5d86dafd3d717f4d29ceec06406b",
+    "src/AtomUI.Foundation/Modularity/ModuleBase.cs": "5fd3d11127a4857701c8bdbc5e40e976f30ad20f625110817d1334f65fe3e410",
+    "src/AtomUI.Foundation/Modularity/ModuleCatalog.cs": "bef26daf96f4fcfce20770a5c26b075a1d325f6d52e7f16f7ec82afd92ca614d",
+    "src/AtomUI.Foundation/Modularity/ModuleChangeContracts.cs": "e381982aa6c2702b4a15ec75b3bf12d5b3a658530cc55d806a5de3e8ba03051d",
+    "src/AtomUI.Foundation/Modularity/ModuleComposition.cs": "9b49a412d6b4818e67b03c1960e79d26d9021b17779c32af18050f64982aa621",
+    "src/AtomUI.Foundation/Modularity/ModuleDependencyDescriptor.cs": "f8696e4a5a1e9eb5c43c4156238110cde2b6c3f17ffbcb15d19144b54d23e3d6",
+    "src/AtomUI.Foundation/Modularity/ModuleDependencyGraph.cs": "9e823b9f0cd2ec5d3df553bd62716c2ea04c82d54bd6f5fe21e7af8f960247cc",
+    "src/AtomUI.Foundation/Modularity/ModuleDescriptor.cs": "17dc48c558f3b261505a7dec30627542905905cab21337400f06f8506efd1f64",
+    "src/AtomUI.Foundation/Modularity/ModuleDiagnostic.cs": "493178dd2e185366f460d28a2f30bcf807bfd73ebbf3a66d9f9a3ed9ad96f9ce",
+    "src/AtomUI.Foundation/Modularity/ModuleDiagnosticCodes.cs": "63bd5b2ce2317ca245fb349ccb35d3f3175edd774fdab84326f39c2f66ba4ddd",
+    "src/AtomUI.Foundation/Modularity/ModuleDiagnosticSeverity.cs": "7e0189a44315766767868540c36b7f6a9a612576a1522c5e1b03964d297ddf79",
+    "src/AtomUI.Foundation/Modularity/ModuleEntry.cs": "46df6c9abd9395b23d07b3c6cb9d9a8a26d506eedee1559be1547e58cf5571d1",
+    "src/AtomUI.Foundation/Modularity/ModuleGraphException.cs": "ae2c72e2bc55dc0ee1f43d034c8cf01b353f3ff65d93a0aba4dc96c14b2cd3cf",
+    "src/AtomUI.Foundation/Modularity/ModuleHost.Changes.cs": "2574642a96ae51e99ea813e95c3c418cc7c8b6538b7de3881cbe7e7815e05295",
+    "src/AtomUI.Foundation/Modularity/ModuleHost.Coordination.cs": "ca5afb586762ae82a995a9299099fd6723bc942947d2403c7e2f70d744e384a0",
+    "src/AtomUI.Foundation/Modularity/ModuleHost.Diagnostics.cs": "5af27759cbec2cec1156cdc1a2a65e88c58b2cf1d973cf8e2746f27a4396a696",
+    "src/AtomUI.Foundation/Modularity/ModuleHost.Retirement.cs": "a77961a1c7f30486e0c78a6ea4cf44dadf891a270e2dc05edb808c1043b3b1c1",
+    "src/AtomUI.Foundation/Modularity/ModuleHost.Stages.cs": "1e2c958698885a6f008b2dfb9e083492542de381606f501ebd459357dd05a34e",
+    "src/AtomUI.Foundation/Modularity/ModuleHost.cs": "38678c8e9f527a80df7ad998d6045a35a43318c83a02c82ef0a2854ffa544202",
+    "src/AtomUI.Foundation/Modularity/ModuleHostOptions.cs": "f47388a97cdc6fbb85de1a5c14e94c8f2ff240941145cf1af9fd7f13157bbf0f",
+    "src/AtomUI.Foundation/Modularity/ModuleHostOptionsBuilder.cs": "93878a1ff6c467b444c1cbda910ba4b9555830fa831d2b2ab0b765cab20765e7",
+    "src/AtomUI.Foundation/Modularity/ModuleHostPhase.cs": "24ac39cc8a5a63b38271bdf9b95e684cbd59551ef68c4327ba4ac4606dc2b39f",
+    "src/AtomUI.Foundation/Modularity/ModuleHostResult.cs": "094c333b0e3689b5a0e645c0a1f31175bdc127581166f4e544eb96631ad3fc3c",
+    "src/AtomUI.Foundation/Modularity/ModuleHostValidationResult.cs": "75b7f405d9418d4065d45e7aa7f229cd099e8ee5ba150369d61459818d98ee31",
+    "src/AtomUI.Foundation/Modularity/ModuleHostView.cs": "8764346ae2e6ad86ca96e3bbf70f79349165b14042d611f2456069671d1012c2",
+    "src/AtomUI.Foundation/Modularity/ModuleId.cs": "db35462dd08fbf9d4b3224cd547f803010a7b9fc26ef692bd3943b0da1ce8cc8",
+    "src/AtomUI.Foundation/Modularity/ModuleInitializationContext.cs": "4e71aefdb34d7ccb79e072d9b4b3193b06c0f4e16a8f1e38fc2b1baee4de7b8d",
+    "src/AtomUI.Foundation/Modularity/ModulePhaseContext.cs": "44dde9f992f40013e949130ca83064d49089b05bf790e02a789d928bd39d8451",
+    "src/AtomUI.Foundation/Modularity/ModulePhaseExecutionOrder.cs": "a167cdc8e184fc758d665bcf958e0c5a848c58ed10aa31d22629ef47a8ae269c",
+    "src/AtomUI.Foundation/Modularity/ModulePhaseId.cs": "3ecdb11d654a728fd128bf025e07758f0345a6434db23f9a30889a3173d51e64",
+    "src/AtomUI.Foundation/Modularity/ModuleRegistration.cs": "dc99d5953b259b06af4c55ef9b38d2860d3eceef27ef80c3e3736ab758818194",
+    "src/AtomUI.Foundation/Modularity/ModuleResolutionResult.cs": "94165a93c220fa87956a6246e62b034249d1e3ced461e79c561ced700139af57",
+    "src/AtomUI.Foundation/Modularity/ModuleSerializedIdBoundaryAttribute.cs": "f6aa5d99f5677b990c01f55f3f1a002bc6e074d91fb2b481a0bfb872a651ac28",
+    "src/AtomUI.Foundation/Modularity/ModuleServiceCollection.cs": "462f0d1dfc1498281169900ca99cf05329fbdcb2c296a2d04a14595e082ba8ff",
+    "src/AtomUI.Foundation/Modularity/ModuleServiceConfigurationContext.cs": "077e094b5c174d4f71c62cc60b862663597a26b0b51ce3d21c3eb69332869103",
+    "src/AtomUI.Foundation/Modularity/ModuleServiceDescriptor.cs": "8a3c4a86b4386384821093fc87fd7233c1c1b461f0f9fd72bb9fc1d03d42230d",
+    "src/AtomUI.Foundation/Modularity/ModuleServiceLifetime.cs": "e5d7f062368d7634b9d8010459aaa09c3bc62abf1b8aadb9751b73e10b3728bf",
+    "src/AtomUI.Foundation/Modularity/ModuleServiceRegistry.cs": "c115f77edbeb34eabe19d9ab1b94bad9c21bc7984fdeb102a9d025e42c8d0349",
+    "src/AtomUI.Foundation/Modularity/ModuleShutdownContext.cs": "23f7f0b0870ec666e73e51cc3075cfa4e4e325b830032b6c82181aa86f202be7",
+    "src/AtomUI.Foundation/Modularity/ModuleTypeIdentity.cs": "9cf9d6eba9bd482100fdafaed2f7d3c151525a119906e60b065a85d55c9d0164",
+    "src/AtomUI.Foundation/Modularity/Services/ModuleServiceActivationContext.cs": "a0de82a01b00ecb8b8a5f846d456d48852ad64ac93e67130ac575623f49fa176",
+    "src/AtomUI.Foundation/Modularity/Services/ModuleServiceBindings.cs": "f6f059fb2d1f0fa3756958e7f2aa2fe4500a25c37eef09663e8803eb166a83ad",
+    "src/AtomUI.Foundation/Modularity/Services/ModuleServiceExceptions.cs": "212de3b652d106f40b259ce10565b02d1cc4ad98b6f4a74e689e7eb1b950bc8c",
+    "src/AtomUI.Foundation/Modularity/Services/ModuleServiceRuntime.cs": "b1e2a17000ac1831ea545e7b8be51c1540d6a5a48dfc46dc0ae33771f0f52abf",
+    "src/AtomUI.Foundation/Modularity/Services/ModuleServiceScope.cs": "1ab9325e667f68958fd00d5b68189b6dc3930226f64f2bdea092a4f6918e6df7",
+    "src/AtomUI.Foundation/Modularity/Services/ModuleServiceTransition.cs": "15a899c937e73320abaa7acf90b8b620df531541decad36f350ac9c991d143d2",
+    "src/AtomUI.Foundation/Modularity/Services/ServiceRegistration.cs": "8076c10a49b5a13cb7c0d9172ac0a0434a396cf2e2b81d3e78675d956334ac2c",
+    "src/AtomUI.Foundation/Modularity/Services/ServiceRegistrationGraph.cs": "e8defbd2dd03b054ab43da835aa79be7517306111399e856317c05a88ef6efbe",
+    "src/AtomUI.Foundation.Generator/AtomUI.Foundation.Generator.csproj": "99a3a7f5fc57359b78f2e4652afda128278740df375969f15ef0bb22c1b756c6",
+    "src/AtomUI.Foundation.Generator/AtomUIFoundationGeneratorMarker.cs": "bdf9d14d96300e82e0404b2f1be93a107b86f0aafa62897ad81ca3611a8aa1b2",
+    "src/AtomUI.Foundation.Generator/Modularity/Diagnostics/ModuleGeneratorDiagnostics.cs": "9a2c7e868b254029776be114157b5189c07d3a47808ffd51bce7077908281487",
+    "src/AtomUI.Foundation.Generator/Modularity/ModuleCatalogGenerator.cs": "65dcf052c7787a87ea0387eb3b01418ed7737c4e9289b874fe218fe9e9a80154",
+    "src/AtomUI.Foundation.Generator/buildTransitive/AtomUI.Foundation.Generator.props": "0111b3c1ed392225aff1a1e5d2d2aaf3b6a1fe76409dca0b69c58ee2d3a44169"
+  },
+  "candidateVersion": "1.0.3-audit.g18d7b12e3343",
+  "packages": {
+    "AtomUI.Foundation.1.0.3-audit.g18d7b12e3343.nupkg": {
+      "repositoryRelativePath": ".artifacts/audit-remediation-20261104/consumers/packages/AtomUI.Foundation.1.0.3-audit.g18d7b12e3343.nupkg",
+      "sha256": "3b81362209d5ffc9b0e83b093c34359e607841f3214c6f2d0ea5eb0e0c502ead",
+      "assemblies": {
+        "lib/net10.0/AtomUI.Foundation.dll": "04ff1b40d9d3e2a12fb9e69692c8dee759e8d1489d0071881bca0e4da4e9179b",
+        "lib/net8.0/AtomUI.Foundation.dll": "05635f21b22b757084f913ef991246b1fc4a343af5d079de9851c9419f74f7b6"
+      }
+    },
+    "AtomUI.Foundation.Generator.1.0.3-audit.g18d7b12e3343.nupkg": {
+      "repositoryRelativePath": ".artifacts/audit-remediation-20261104/consumers/packages/AtomUI.Foundation.Generator.1.0.3-audit.g18d7b12e3343.nupkg",
+      "sha256": "ad8d5f48072f79e9484ed2753e6865a2ac4adcce3a7f4919295c24c963c1ec5a",
+      "assemblies": {
+        "analyzers/dotnet/cs/AtomUI.Foundation.Generator.dll": "d0e5ca82e0c6d4dce94b2e5afe0c7ed27db8ede1892e0ceabfe47cabf076e0d7"
+      }
+    }
+  },
+  "validation": {
+    "releaseBuild": {
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "warnings": 0,
+      "errors": 0,
+      "log": "release-complete-build.log"
+    },
+    "runtimeRelease": {
+      "discovered": 200,
+      "passed": 200,
+      "failed": 0,
+      "log": "runtime-complete-release.log"
+    },
+    "generatorRelease": {
+      "discovered": 48,
+      "passed": 48,
+      "failed": 0,
+      "log": "generator-complete-release.log"
+    },
+    "realGeneratorConsumers": {
+      "cases": 6,
+      "debugRuntimeConsumers": 2,
+      "details": "consumers/verification.json in archive"
+    },
+    "packagedRuntimeConsumers": {
+      "jit-net8.0": {
+        "passed": true,
+        "tfm": "net8.0",
+        "mode": "jit",
+        "rid": "osx-arm64",
+        "binarySha256": "d97034bd69779468e46136e86b53fea3661bebcb4c3bd5e23dfe7ea6a893fdf7",
+        "foundationAssemblySha256": "05635f21b22b757084f913ef991246b1fc4a343af5d079de9851c9419f74f7b6"
+      },
+      "jit-net10.0": {
+        "passed": true,
+        "tfm": "net10.0",
+        "mode": "jit",
+        "rid": "osx-arm64",
+        "binarySha256": "f7d8269882858af3623a8fcd4b7835b2d768f01267f853ba2c5561c2b4e20485",
+        "foundationAssemblySha256": "04ff1b40d9d3e2a12fb9e69692c8dee759e8d1489d0071881bca0e4da4e9179b"
+      },
+      "trim-net8.0": {
+        "passed": true,
+        "tfm": "net8.0",
+        "mode": "trim",
+        "rid": "osx-arm64",
+        "binarySha256": "8b2eb5ae6326f775c65e0764cd9a11c461ab943e7c63ccaf2019703cfb5b5cf8",
+        "foundationAssemblySha256": "05635f21b22b757084f913ef991246b1fc4a343af5d079de9851c9419f74f7b6"
+      },
+      "trim-net10.0": {
+        "passed": true,
+        "tfm": "net10.0",
+        "mode": "trim",
+        "rid": "osx-arm64",
+        "binarySha256": "242a3cc6b9b9d5626f7e24baa5ab5f61e0a4bddee5e994b1b987aa40bdd175cb",
+        "foundationAssemblySha256": "04ff1b40d9d3e2a12fb9e69692c8dee759e8d1489d0071881bca0e4da4e9179b"
+      },
+      "aot-net8.0": {
+        "passed": true,
+        "tfm": "net8.0",
+        "mode": "aot",
+        "rid": "osx-arm64",
+        "binarySha256": "1a2457c32dd71d9ec9bc41a8e2e6b222901ee1a564428c96e310d420eb55c431",
+        "foundationAssemblySha256": "05635f21b22b757084f913ef991246b1fc4a343af5d079de9851c9419f74f7b6"
+      },
+      "aot-net10.0": {
+        "passed": true,
+        "tfm": "net10.0",
+        "mode": "aot",
+        "rid": "osx-arm64",
+        "binarySha256": "31eef23b5d59bc9065a69d1c227e4aabef95dc1c70c4ad158b99a73162b626c3",
+        "foundationAssemblySha256": "04ff1b40d9d3e2a12fb9e69692c8dee759e8d1489d0071881bca0e4da4e9179b"
+      }
+    },
+    "lumin": {
+      "sourceCommit": "893a41a6a864cdce04845c50ca812315d2b5bab4",
+      "originalBenchmarkSha256": "4be2a3059d045f9e46d3c8f8a99f3f60e5d3ef1229c6c2b7dbdb26724df00414",
+      "matchesOriginalFailureCommit76af979": true,
+      "warmupCycles": 50,
+      "cycles": 1000,
+      "thresholdBytes": 1048576,
+      "originalFailureGrowthBytes": 6621760,
+      "finalGrowthBytes": 36696,
+      "finalApplicationBytes": 0,
+      "ledgerResidualCycles": 0,
+      "resourceAuditCases": 1,
+      "coreRelatedCases": 84,
+      "jointConsumerCases": 1,
+      "foundationAssemblySha256": "04ff1b40d9d3e2a12fb9e69692c8dee759e8d1489d0071881bca0e4da4e9179b",
+      "allPassed": true,
+      "cleanup": {
+        "originalPackageVersion": "1.0.3",
+        "directoryPackagesUnmodified": true,
+        "normalRestoreSucceeded": true,
+        "defaultBuildOutputsRestored": true,
+        "defaultOutputAssemblySha256": "d78b063acc05ec3fb66bd6428c0277d5d4c2ba0440defd235c31af4ea617af05",
+        "gitStatus": "",
+        "commands": [
+          {
+            "command": [
+              "dotnet",
+              "restore",
+              "/Users/chinboy/Projects/dotnet/AtomUILuminEditor/tests/AtomUI.LuminEditor.PerformanceTests/AtomUI.LuminEditor.PerformanceTests.csproj",
+              "--ignore-failed-sources",
+              "-p:NuGetAudit=false"
+            ],
+            "exitCode": 0,
+            "log": ".artifacts/audit-remediation-20261104/lumin-default-restore-PerformanceTests.log"
+          },
+          {
+            "command": [
+              "dotnet",
+              "build",
+              "/Users/chinboy/Projects/dotnet/AtomUILuminEditor/tests/AtomUI.LuminEditor.PerformanceTests/AtomUI.LuminEditor.PerformanceTests.csproj",
+              "-c",
+              "Release",
+              "-f",
+              "net10.0",
+              "--no-restore",
+              "--disable-build-servers",
+              "-m:1",
+              "-nodeReuse:false"
+            ],
+            "exitCode": 0,
+            "log": ".artifacts/audit-remediation-20261104/lumin-default-build-PerformanceTests.log"
+          },
+          {
+            "command": [
+              "dotnet",
+              "restore",
+              "/Users/chinboy/Projects/dotnet/AtomUILuminEditor/tests/AtomUI.LuminEditor.Core.Tests/AtomUI.LuminEditor.Core.Tests.csproj",
+              "--ignore-failed-sources",
+              "-p:NuGetAudit=false"
+            ],
+            "exitCode": 0,
+            "log": ".artifacts/audit-remediation-20261104/lumin-default-restore-Core.Tests.log"
+          },
+          {
+            "command": [
+              "dotnet",
+              "build",
+              "/Users/chinboy/Projects/dotnet/AtomUILuminEditor/tests/AtomUI.LuminEditor.Core.Tests/AtomUI.LuminEditor.Core.Tests.csproj",
+              "-c",
+              "Release",
+              "-f",
+              "net10.0",
+              "--no-restore",
+              "--disable-build-servers",
+              "-m:1",
+              "-nodeReuse:false"
+            ],
+            "exitCode": 0,
+            "log": ".artifacts/audit-remediation-20261104/lumin-default-build-Core.Tests.log"
+          },
+          {
+            "command": [
+              "dotnet",
+              "restore",
+              "/Users/chinboy/Projects/dotnet/AtomUILuminEditor/tests/AtomUI.LuminEditor.Generator.Tests/AtomUI.LuminEditor.Generator.Tests.csproj",
+              "--ignore-failed-sources",
+              "-p:NuGetAudit=false"
+            ],
+            "exitCode": 0,
+            "log": ".artifacts/audit-remediation-20261104/lumin-default-restore-Generator.Tests.log"
+          },
+          {
+            "command": [
+              "dotnet",
+              "build",
+              "/Users/chinboy/Projects/dotnet/AtomUILuminEditor/tests/AtomUI.LuminEditor.Generator.Tests/AtomUI.LuminEditor.Generator.Tests.csproj",
+              "-c",
+              "Release",
+              "-f",
+              "net10.0",
+              "--no-restore",
+              "--disable-build-servers",
+              "-m:1",
+              "-nodeReuse:false"
+            ],
+            "exitCode": 0,
+            "log": ".artifacts/audit-remediation-20261104/lumin-default-build-Generator.Tests.log"
+          }
+        ],
+        "note": "Candidate tests are historical evidence. Original dependencies and outputs restored; no old-package benchmark was rerun."
+      }
+    }
+  },
+  "review": {
+    "wholeChangeReviews": 1,
+    "criticalFindings": 0,
+    "importantFindings": 3,
+    "minorFindings": 0,
+    "resolution": "All three fixed with RED→GREEN and full Release suite; keyword namespace and declared-but-unused dependency variants also proved RED→GREEN.",
+    "report": "final-review.md in archive",
+    "noOpenRequiredFindings": true
+  },
+  "rulings": [
+    "No branch/worktree/clone, commit, version-source edit, feed push or public release.",
+    "Pruned failure facts are preserved in the existing LifetimeDomain; old factory-owner GC test now also requires original failures at global close.",
+    "GC probes exit a NoInlining producer frame before collection; all original sample counts, physical Release assertions and memory budgets retained.",
+    "Scope indexes share the original state and release authority; success metadata and factory-resolution bookkeeping do not act as failure-resource roots."
+  ],
+  "cleanup": {
+    "removedRunLocalPaths": [
+      ".artifacts/audit-remediation-20261104/consumers/project-default",
+      ".artifacts/audit-remediation-20261104/consumers/project-configured",
+      ".artifacts/audit-remediation-20261104/consumers/project-invalid",
+      ".artifacts/audit-remediation-20261104/consumers/package-default",
+      ".artifacts/audit-remediation-20261104/consumers/package-configured",
+      ".artifacts/audit-remediation-20261104/consumers/package-invalid",
+      ".artifacts/audit-remediation-20261104/consumers/nuget-cache",
+      ".artifacts/audit-remediation-20261104/consumers/runtime-nuget-cache",
+      ".artifacts/audit-remediation-20261104/consumers/Directory.Build.props",
+      ".artifacts/audit-remediation-20261104/consumers/Directory.Build.targets",
+      ".artifacts/audit-remediation-20261104/consumers/Directory.Packages.props",
+      ".artifacts/audit-remediation-20261104/consumers/NuGet.Config",
+      ".artifacts/audit-remediation-20261104/consumers-prior/project-default",
+      ".artifacts/audit-remediation-20261104/consumers-prior/project-configured",
+      ".artifacts/audit-remediation-20261104/consumers-prior/project-invalid",
+      ".artifacts/audit-remediation-20261104/consumers-prior/package-default",
+      ".artifacts/audit-remediation-20261104/consumers-prior/package-configured",
+      ".artifacts/audit-remediation-20261104/consumers-prior/package-invalid",
+      ".artifacts/audit-remediation-20261104/consumers-prior/nuget-cache",
+      ".artifacts/audit-remediation-20261104/consumers-prior/runtime-nuget-cache",
+      ".artifacts/audit-remediation-20261104/consumers-prior/Directory.Build.props",
+      ".artifacts/audit-remediation-20261104/consumers-prior/Directory.Build.targets",
+      ".artifacts/audit-remediation-20261104/consumers-prior/Directory.Packages.props",
+      ".artifacts/audit-remediation-20261104/consumers-prior/NuGet.Config",
+      ".artifacts/audit-remediation-20261104/lumin-nuget-cache",
+      ".artifacts/audit-remediation-20261104/qualification/18d7b12e3343ce13/packages",
+      ".artifacts/audit-remediation-20261104/qualification/585e660b9a47ca09/packages",
+      ".artifacts/audit-remediation-20261104/verify_lumin.py",
+      ".artifacts/audit-remediation-20261104/finalize_evidence.py",
+      ".artifacts/audit-remediation-20261104/lumin-packages.props",
+      ".artifacts/audit-remediation-20261104/qualify.py",
+      ".artifacts/audit-remediation-20261104/restore_lumin.py"
+    ],
+    "postCleanupExecutableRuns": 6,
+    "allPostCleanupRunsPassed": true,
+    "candidatePackagesAndQualifiedExecutablesRetained": true,
+    "luminSourceWorktreeClean": true
+  },
+  "limits": [
+    "Native execution is qualified only on the recorded local osx-arm64 host; preserved linker deployment warnings do not qualify older macOS or other platforms.",
+    "Generator minimum compiler and audit R01-R04 remain separate protocol/qualification topics.",
+    "Official 1.0.3 does not contain these uncommitted fixes; downstream task ledgers were not changed."
+  ],
+  "details": {
+    "archive": "architecture-remediation-20261104-f2c0473c7ff98594.json.gz",
+    "archiveSha256": "f2c0473c7ff985946dfbdfa71bf3f78234b9ec3bdeb8d8fa7b9c5015de401793",
+    "filesInArchive": 222,
+    "uncompressedBytes": 4173719,
+    "compressedBytes": 396285
+  }
+}

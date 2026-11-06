@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-04",
+  "sourceCommit": "0d0a361cdef64f0000f19bb6ac5a8263c3b8e8aa",
+  "scope": "Read-only architecture audit; production code, tests, build files and versions unchanged.",
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "sdk": "10.0.300",
+    "tfm": "net10.0",
+    "configuration": "Release",
+    "roslyn": "5.0.0"
+  },
+  "packages": {
+    "AtomUI.Foundation": {
+      "version": "1.0.3",
+      "nupkgSha256": "4d59afd96e2a32617159733c358f4a7e2b39e969b80c4722f9b9a8f51d8ffca5",
+      "dllSha256": "d78b063acc05ec3fb66bd6428c0277d5d4c2ba0440defd235c31af4ea617af05"
+    },
+    "AtomUI.Foundation.Generator": {
+      "version": "1.0.3",
+      "nupkgSha256": "b8a39926e419b8c5007e22119214466307d5e7c2b65dc71d3816649412a297c1",
+      "dllSha256": "c7b37532ab73dc086d7436fcaf08c4028bbbb3e1b6586b9875ba25549f21212d"
+    }
+  },
+  "probe": {
+    "command": "dotnet run --project Probe.csproj --configuration Release",
+    "exitCode": 0,
+    "observationCount": 13,
+    "interpretation": "Zero exit means the diagnostic driver finished, not that the contracts passed. See per-scenario observations.",
+    "archive": "foundation-architecture-audit-20261104-probe-e6560549b4472ded.json.gz",
+    "archiveSha256": "e6560549b4472deda8ab15fbb7dc5d3ffc7dc3e03d1a9596b4d67e59c3b0bc93",
+    "runtimeReference": "Exact lib/net10.0 DLL extracted from the official 1.0.3 NuGet package; generator likewise from official analyzer asset.",
+    "internalInspection": "CandidateRetirements count uses reflection for diagnosis only; remaining execution paths use public APIs and Roslyn semantic analysis."
+  },
+  "results": [
+    {
+      "scenario": "successful_candidate_history",
+      "result": {
+        "count": 128,
+        "survivingTickets": 128
+      }
+    },
+    {
+      "scenario": "released_prerequisite_history",
+      "result": {
+        "survivingOwners": 128,
+        "historicalDependencies": 128,
+        "IsSuccess": true
+      }
+    },
+    {
+      "scenario": "failure_closure_after_return",
+      "result": {
+        "aFailed": true,
+        "bState": "Active",
+        "cState": "RetainedByFailedOwner",
+        "cReleases": 0,
+        "IsSuccess": false,
+        "failures": 0,
+        "readers": 0
+      }
+    },
+    {
+      "scenario": "healthy_module_retained_after_sibling_failure",
+      "result": {
+        "controlSuccess": true,
+        "controlAlive": false,
+        "failedRetirementSuccess": false,
+        "healthyAlive": true
+      }
+    },
+    {
+      "scenario": "state_getter_reentry",
+      "result": {
+        "change": "Rejected",
+        "CompletedImmediately": false,
+        "shutdownSuccess": true,
+        "phase": "Shutdown"
+      }
+    },
+    {
+      "scenario": "failed_resume_admission",
+      "result": {
+        "change": "Canceled",
+        "Running": false,
+        "admitted": true,
+        "phase": "Initialized",
+        "diagnostics": [
+          "ChangeModules",
+          "ResumeModules"
+        ]
+      }
+    },
+    {
+      "scenario": "global_adapter_completion_order",
+      "result": {
+        "Stopped": true,
+        "CompleteEntered": false,
+        "shutdownComplete": false
+      }
+    },
+    {
+      "scenario": "global_adapter_after_manual_return",
+      "result": {
+        "CompleteEntered": true,
+        "IsSuccess": true
+      }
+    },
+    {
+      "scenario": "concurrent_stop_notification_barrier",
+      "result": {
+        "secondStopReturned": true,
+        "secondOwnerStopped": false
+      }
+    },
+    {
+      "scenario": "generator_null_dependencies",
+      "result": {
+        "inputErrors": [],
+        "generatedCount": 0,
+        "generatorDiagnostics": [
+          "warning CS8785: Generator 'ModuleCatalogGenerator' failed to generate source. It will not contribute to the output and compilation errors may occur as a result. Exception was of type 'NullReferenceException' with message 'Object reference not set to an instance of an object.'.\r\nSystem.NullReferenceException: Object reference not set to an instance of an object.\n   at System.Collections.Immutable.ImmutableArray`1.ThrowNullRefIfNotInitialized()\n   at System.Linq.ImmutableArrayExtensions.Select[T,TResult](ImmutableArray`1 immutableArray, Func`2 selector)\n   at AtomUI.Modularity.Generators.ModuleCatalogGenerator.GetNamedTypeArray(AttributeData attribute, String name)\n   at AtomUI.Modularity.Generators.ModuleCatalogGenerator.<CreateModuleModel>g__AddDependencies|7_1(AttributeData attribute, String propertyName, <>c__DisplayClass7_0&)\n   at AtomUI.Modularity.Generators.ModuleCatalogGenerator.CreateModuleModel(GeneratorSyntaxContext context, CancellationToken cancellationToken)\n   at AtomUI.Modularity.Generators.ModuleCatalogGenerator.<>c.<Initialize>b__6_1(GeneratorSyntaxContext context, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.UserFunctionExtensions.<>c__DisplayClass0_0`2.<WrapUserFunction>b__0(TInput input, CancellationToken token) in /_/src/Compilers/Core/Portable/SourceGeneration/UserFunction.cs:line 68\n-----\n"
+        ],
+        "exceptions": [
+          "NullReferenceException"
+        ],
+        "outputErrors": []
+      }
+    },
+    {
+      "scenario": "generator_array_dependency",
+      "result": {
+        "inputErrors": [],
+        "generatedCount": 1,
+        "generatorDiagnostics": [],
+        "exceptions": [],
+        "outputErrors": []
+      }
+    },
+    {
+      "scenario": "generator_aliased_dependency",
+      "result": {
+        "inputErrors": [],
+        "generatedCount": 1,
+        "generatorDiagnostics": [],
+        "exceptions": [],
+        "outputErrors": [
+          "AtomUI.Foundation.Generator/AtomUI.Modularity.Generators.ModuleCatalogGenerator/ModuleGeneratedCatalog.g.cs(13,95): error CS0400: The type or namespace name 'External' could not be found in the global namespace (are you missing an assembly reference?)"
+        ]
+      }
+    },
+    {
+      "scenario": "generator_alias_identity_misbind",
+      "result": {
+        "expectedAssembly": "AuditExternal",
+        "actualAssembly": "AuditGlobalOther",
+        "inputErrors": 0,
+        "outputErrors": 0
+      }
+    }
+  ],
+  "reusedEvidence": {
+    "priorScopeAudit": {
+      "repositoryRelativePath": ".artifacts/scope-retirement-assessment-20261104/assessment.json",
+      "sha256": "e1371e5ac2618904de9added11c809f44af6ec3a556890a639b595142e2628d2",
+      "results": [
+        {
+          "scenario": "proposal_empty_scope_retention",
+          "growth": 5181120,
+          "ownedScopesBefore": 64,
+          "ownedScopesAfter": 4064,
+          "threshold": 1048576,
+          "thresholdPassed": false
+        },
+        {
+          "scenario": "proposal_failed_inherited_scope",
+          "waitedForLease": true,
+          "scopeSuccess": false,
+          "scopeFailures": 1,
+          "candidateSuccess": true,
+          "candidateFailures": 0,
+          "originalErrorInCandidate": false,
+          "globalSuccess": false,
+          "releases": 1,
+          "retainedScopes": 1
+        }
+      ]
+    },
+    "interpretation": "These two observations are reused from the immediately preceding assessment; not rerun and not counted among the eight new findings."
+  },
+  "limits": [
+    "No production fix applied.",
+    "No new whole-solution/AOT qualification was run: current source and dependencies are unchanged; targeted observations do not supersede release qualifications.",
+    "Global custom-adapter ordering and concurrent Stop are protocol/contract findings, not claims of premature resource release.",
+    "No conclusion about GitHub branch protections or external release policy.",
+    "No claim that .NET 8 SDK supports or fails to load this Roslyn 5.0 analyzer."
+  ]
+}

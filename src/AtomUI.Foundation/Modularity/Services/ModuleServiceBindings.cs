@@ -12,6 +12,7 @@ public sealed class ModuleServiceBindings
     private bool _frozen;
     private bool _retiring;
     private LifetimeRetirement? _retirement;
+    private LifetimeRetirement? _retirementBatch;
     private readonly List<ModuleServiceScope.ScopeState> _ownedScopes = [];
 
     internal ModuleServiceBindings(ModuleServiceRuntime runtime)
@@ -81,8 +82,9 @@ public sealed class ModuleServiceBindings
     public LifetimeRetirement CompleteRetirement()
     {
         var ticket = PrepareRetirement();
-        return ReferenceEquals(ticket, Runtime.ShutdownRetirement)
-            ? Runtime.Lifetimes.CompleteRetirement() : Runtime.Lifetimes.CompleteRetirement(ticket);
+        if (ReferenceEquals(ticket, Runtime.ShutdownRetirement)) Runtime.Lifetimes.CompleteRetirement();
+        else Runtime.Lifetimes.CompleteRetirement(ticket);
+        return Retirement!;
     }
 
     /// <summary>Stops and completes retirement of candidate-owned owners.</summary>
@@ -90,29 +92,37 @@ public sealed class ModuleServiceBindings
 
     private LifetimeRetirement PrepareRetirement()
     {
+        ModuleServiceScope.ScopeState[] scopes;
+        LifetimeRetirement[] sources;
+        TaskCompletionSource<LifetimeRetirement[]> source;
+        LifetimeRetirement batch;
         lock (Runtime.Gate)
         {
-            if (_retirement is null && Runtime.ShutdownRetirement is not null)
+            while (_retiring && _retirement is null) Monitor.Wait(Runtime.Gate);
+            if (_retirement is not null) return _retirementBatch!;
+            _retiring = true;
+            foreach (var registration in _newRegistrations) registration.Blocks++;
+            foreach (var scope in _ownedScopes) scope.Blocks++;
+            while (_newRegistrations.Any(registration => registration.Pending != 0) || _ownedScopes.Any(scope => scope.Pending != 0))
+                Monitor.Wait(Runtime.Gate);
+            scopes = _ownedScopes.ToArray();
+            lock (Runtime.Lifetimes.Gate)
+                batch = _retirementBatch = Runtime.ShutdownRetirement ??
+                    Runtime.Lifetimes.PrepareRetirement(_newRegistrations.SelectMany(registration => registration.Owners)
+                        .Concat(scopes.SelectMany(scope => scope.Owners.Owners)).Distinct());
+            sources = scopes.Select(scope => scope.PrepareRetirement()).Append(batch).ToArray();
+            source = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            _retirement = LifetimeRetirement.Aggregate(source.Task, result =>
             {
-                _retiring = true;
-                return _retirement = Runtime.ShutdownRetirement;
-            }
-            if (_retirement is null)
-            {
-                _retiring = true;
-                foreach (var registration in _newRegistrations) registration.Blocks++;
-                foreach (var scope in _ownedScopes) scope.Blocks++;
-                while (_newRegistrations.Any(registration => registration.Pending != 0) || _ownedScopes.Any(scope => scope.Pending != 0))
-                    Monitor.Wait(Runtime.Gate);
-                lock (Runtime.Lifetimes.Gate)
-                {
-                    _retirement = Runtime.Lifetimes.PrepareRetirement(_newRegistrations.SelectMany(registration => registration.Owners)
-                        .Concat(_ownedScopes.SelectMany(scope => scope.Owners.Owners)).Distinct());
-                    Runtime.CandidateRetirements.Add(_retirement);
-                }
-            }
-            return _retirement;
+                if (result.IsSuccess)
+                    lock (Runtime.Gate) Runtime.CandidateRetirements.Remove(_retirement!);
+            });
+            Runtime.CandidateRetirements.Add(_retirement, batch);
+            Monitor.PulseAll(Runtime.Gate);
         }
+        foreach (var scope in scopes) scope.StartRetirement();
+        source.SetResult(sources);
+        return batch;
     }
 
     internal ServiceRegistration GetRegistration(Type type)
@@ -132,7 +142,9 @@ public sealed class ModuleServiceBindings
         {
             if (_retiring) throw new InvalidOperationException("Managed service bindings are retiring.");
             var scope = new ModuleServiceScope(this, Runtime.Lifetimes.CreateScope());
-            if (_candidate) _ownedScopes.Add(scope.State);
+            scope.State.Registration = new ModuleServiceScope.ScopeRegistration(Runtime.Gate, _ownedScopes, Runtime.LiveScopes, scope.State);
+            _ownedScopes.Add(scope.State);
+            Runtime.LiveScopes.Add(scope.State);
             return scope;
         }
     }

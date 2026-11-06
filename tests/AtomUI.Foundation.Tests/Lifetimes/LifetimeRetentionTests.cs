@@ -49,7 +49,11 @@ public sealed class LifetimeRetentionTests
         Assert.False(result.IsSuccess);
         Assert.Equal(64, result.Failures.Count);
         Assert.All(result.Owners, owner => Assert.Equal(LifetimeOwnerState.CleanupFailed, owner.State));
-        await domain.DisposeAsync();
+        var cleanupFailure = await Assert.ThrowsAsync<LifetimeCleanupException>(async () => await domain.DisposeAsync());
+        Assert.Equal(result.Failures.OrderBy(failure => failure.OwnerId),
+            cleanupFailure.Result.Failures.OrderBy(failure => failure.OwnerId));
+        Assert.Equal(result.Owners.Select(owner => owner.Id).Order(),
+            cleanupFailure.Result.Owners.Select(owner => owner.Id).Order());
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

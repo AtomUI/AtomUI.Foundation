@@ -9,7 +9,8 @@ public sealed class ModuleServiceRuntime : IModuleHostReconfigurationLifetime, I
     private Func<ModuleServiceBindings>? _current;
     private ModuleHost? _host;
     internal readonly Dictionary<LifetimeOwner, ModuleServiceScope.ScopeState> ScopeLinks = [];
-    internal readonly List<LifetimeRetirement> CandidateRetirements = [];
+    internal readonly HashSet<ModuleServiceScope.ScopeState> LiveScopes = [];
+    internal readonly Dictionary<LifetimeRetirement, LifetimeRetirement> CandidateRetirements = [];
     internal LifetimeRetirement? ShutdownRetirement;
 
     public LifetimeDomain Lifetimes { get; } = new();
@@ -69,17 +70,29 @@ public sealed class ModuleServiceRuntime : IModuleHostReconfigurationLifetime, I
     public async ValueTask<ModuleHostResult> CompleteShutdownAsync()
     {
         Lifetimes.Stop();
-        LifetimeRetirement[] candidates;
+        KeyValuePair<LifetimeRetirement, LifetimeRetirement>[] candidates;
+        ModuleServiceScope.ScopeState[] scopes;
         lock (Gate)
         {
             ShutdownRetirement ??= Lifetimes.CurrentRetirement!;
+            scopes = LiveScopes.ToArray();
+            foreach (var scope in scopes) scope.PrepareRetirement();
             candidates = CandidateRetirements.ToArray();
         }
-        foreach (var candidate in candidates) Lifetimes.CompleteRetirement(candidate);
+        foreach (var scope in scopes) scope.StartRetirement();
+        foreach (var candidate in candidates)
+            if (!ReferenceEquals(candidate.Value, ShutdownRetirement)) Lifetimes.CompleteRetirement(candidate.Value);
         var global = Lifetimes.CompleteRetirement();
-        var results = await Task.WhenAll(candidates.Append(global).Select(ticket => ticket.FinalCompletion)).ConfigureAwait(false);
-        var failures = results.SelectMany(result => result.Failures).Distinct().ToArray();
-        var owners = results.SelectMany(result => result.Owners).GroupBy(owner => owner.Id).Select(group => group.Last()).ToArray();
+        var results = await Task.WhenAll(candidates.Select(candidate => candidate.Key)
+            .Concat(scopes.Select(scope => scope.Retirement!)).Append(global)
+            .Select(ticket => ticket.FinalCompletion)).ConfigureAwait(false);
+        return ToHostResult(LifetimeRetirement.Combine(results));
+    }
+
+    internal static ModuleHostResult ToHostResult(LifetimeCloseResult result)
+    {
+        var failures = result.Failures;
+        var owners = result.Owners;
         var diagnostics = failures.Select(failure => new ModuleDiagnostic(
             ModuleServiceDiagnosticCodes.CleanupFailed, failure.Exception.Message, failure.ModuleId,
             stage: failure.Stage, exceptionType: failure.Exception.GetType().FullName,

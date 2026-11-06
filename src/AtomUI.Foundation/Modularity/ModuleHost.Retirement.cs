@@ -4,6 +4,8 @@ namespace AtomUI.Modularity;
 
 public sealed partial class ModuleHost
 {
+    private sealed record RetirementResources(IReadOnlyList<ModuleEntry> Modules, object? Services, ModuleChangePreparation? Domain);
+
     private ModuleChangeRetirement StartTrackedCleanup(Func<ModuleChangeRetirement, Task<ModuleHostResult>> cleanup, object resources)
     {
         var completion = NewCompletion();
@@ -38,7 +40,7 @@ public sealed partial class ModuleHost
         catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "StopPreviousDomain")); }
         var result = await DrainRetirementAsync(removed, registry,
             () => CompletePreviousDomainAsync(preparation),
-            () => CompletePreviousServicesAsync(services)).ConfigureAwait(false);
+            () => CompletePreviousServicesAsync(services), receipt, preparation).ConfigureAwait(false);
         diagnostics.AddRange(result.Diagnostics);
         return CreateResult(diagnostics);
     }
@@ -52,22 +54,43 @@ public sealed partial class ModuleHost
         receipt.ManagedRetirement = candidate.ManagedServices?.Retirement;
         var result = await DrainRetirementAsync(created, candidate.Registry,
             () => AbortDomainAsync(preparation),
-            () => CompleteCandidateServicesAsync(candidate.ManagedServices)).ConfigureAwait(false);
+            () => CompleteCandidateServicesAsync(candidate.ManagedServices), receipt, preparation).ConfigureAwait(false);
         diagnostics.AddRange(result.Diagnostics);
         return CreateResult(diagnostics);
     }
 
     private async Task<ModuleHostResult> DrainRetirementAsync(IEnumerable<ModuleEntry> entries, ModuleServiceRegistry registry,
-        Func<Task<ModuleHostResult>> completeDomain, Func<Task<ModuleHostResult>> completeServices)
+        Func<Task<ModuleHostResult>> completeDomain, Func<Task<ModuleHostResult>> completeServices,
+        ModuleChangeRetirement receipt, ModuleChangePreparation? preparation)
     {
         // Both Stop paths have finished before this scheduler is entered. Domain
         // cleanup may return a module lease, or wait for a module/service ticket;
         // it must be started before awaiting any module's final reader drain.
+        var modules = entries.ToArray();
         var domainCompletion = completeDomain();
-        var moduleCompletion = CleanupEntriesAsync(entries, registry);
+        var moduleCompletion = CleanupEntriesAsync(modules, registry);
         var serviceCompletion = CompleteServicesAfterModulesAsync(moduleCompletion, completeServices);
         var results = await Task.WhenAll(domainCompletion, moduleCompletion, serviceCompletion).ConfigureAwait(false);
+        // Keep actual failed modules and their Required dependencies, rather than
+        // a whole historical composition and all of its registration factories.
+        receipt.RetainResources(new RetirementResources(FailedModuleClosure(modules),
+            results[2].IsSuccess ? null : receipt.ManagedRetirement, results[0].IsSuccess ? null : preparation));
         return new ModuleHostResult(results.SelectMany(result => result.Diagnostics));
+    }
+
+    private static IReadOnlyList<ModuleEntry> FailedModuleClosure(ModuleEntry[] modules)
+    {
+        var indexed = modules.ToDictionary(entry => entry.Descriptor.Id);
+        var retained = new HashSet<ModuleEntry>();
+        var pending = new Stack<ModuleEntry>(modules.Where(entry =>
+            entry.ShutdownOperation is not { IsCompletedSuccessfully: true } || !entry.ShutdownOperation.Result.IsSuccess));
+        while (pending.TryPop(out var entry))
+        {
+            if (!retained.Add(entry)) continue;
+            foreach (var dependency in entry.Descriptor.Dependencies)
+                if (indexed.TryGetValue(dependency.ModuleId, out var prerequisite)) pending.Push(prerequisite);
+        }
+        return retained.ToArray();
     }
 
     private static async Task<ModuleHostResult> CompleteServicesAfterModulesAsync(Task<ModuleHostResult> moduleCompletion,
@@ -83,7 +106,7 @@ public sealed partial class ModuleHost
         try
         {
             var result = await services.CompleteRetirement().FinalCompletion.ConfigureAwait(false);
-            return CreateResult(result.Failures.Select(failure => FailureDiagnostic(failure.Exception, failure.Stage, failure.ModuleId)));
+            return CreateResult(ModuleServiceRuntime.ToHostResult(result).Diagnostics);
         }
         catch (Exception exception) { return CreateResult([FailureDiagnostic(exception, "AbortServices")]); }
     }
@@ -105,7 +128,7 @@ public sealed partial class ModuleHost
         try
         {
             var result = await services.CompleteRetirement().FinalCompletion.ConfigureAwait(false);
-            return CreateResult(result.Failures.Select(failure => FailureDiagnostic(failure.Exception, failure.Stage, failure.ModuleId)));
+            return CreateResult(ModuleServiceRuntime.ToHostResult(result).Diagnostics);
         }
         catch (Exception exception) { return CreateResult([FailureDiagnostic(exception, "RetireServices")]); }
     }

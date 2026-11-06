@@ -12,6 +12,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
     private readonly Queue<LifetimeOwner> _progressQueue = [];
     private readonly HashSet<LifetimeOwner> _queuedOwners = [];
     private readonly HashSet<LifetimeOwner> _ownersToPrune = [];
+    private readonly Dictionary<long, LifetimeCloseResult> _prunedFailureResults = [];
     private static long _nextOwnerId;
     private static readonly ConditionalWeakTable<object, LifetimeOwner> Ownership = new();
     private static readonly object OwnershipGate = new();
@@ -21,6 +22,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
     private LifetimeRetirement? _retirement;
     private bool _progressing;
     private bool _progressRequested;
+    private bool _failureClosureDirty;
     [ThreadStatic] private static int _stopCallbackDepth;
 
     internal LifetimeRetirement? CurrentRetirement
@@ -192,7 +194,9 @@ public sealed class LifetimeDomain : IAsyncDisposable
         capture.Returned = true;
         capture.Consumer.Captures.Remove(capture);
         capture.Dependency.Consumers.Remove(capture);
-        capture.Dependency.LifetimeDomain.QueueProgressUnsafe(capture.Dependency);
+        var domain = capture.Dependency.LifetimeDomain;
+        if (capture.Dependency.BlockedByFailure) domain._failureClosureDirty = true;
+        domain.QueueProgressUnsafe(capture.Dependency);
     }
 
     internal LifetimeLease<T> Acquire<T>(LifetimeOwner<T> owner) where T : class
@@ -495,6 +499,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
                     return;
                 }
 
+                if (_failureClosureDirty) RecomputeFailureClosureUnsafe();
                 PublishInitialSnapshotsUnsafe();
                 while (_progressQueue.TryDequeue(out var owner))
                 {
@@ -573,7 +578,12 @@ public sealed class LifetimeDomain : IAsyncDisposable
             {
                 owner.CurrentState = LifetimeOwnerState.Released;
                 foreach (var capture in owner.Captures.ToArray()) RemoveCaptureUnsafe(capture);
-                foreach (var dependent in owner.ReleaseDependents) QueueProgressUnsafe(dependent);
+                foreach (var dependent in owner.ReleaseDependents)
+                {
+                    dependent.Prerequisites.Remove(owner);
+                    QueueProgressUnsafe(dependent);
+                }
+                owner.ReleaseDependents.Clear();
                 owner.ForgetValue();
                 _ownersToPrune.Add(owner);
             }
@@ -605,6 +615,51 @@ public sealed class LifetimeDomain : IAsyncDisposable
             }
             foreach (var capture in current.Captures) pending.Enqueue(capture.Dependency);
             foreach (var dependent in current.ReleaseDependents) pending.Enqueue(dependent);
+        }
+    }
+
+    private void RecomputeFailureClosureUnsafe()
+    {
+        _failureClosureDirty = false;
+        // A failed factory reservation may already have left the tracked owner list,
+        // while a live ordering edge still makes it a failure root.
+        var owners = new HashSet<LifetimeOwner>();
+        var pending = new Queue<LifetimeOwner>(_owners);
+        while (pending.TryDequeue(out var current))
+        {
+            if (!owners.Add(current)) continue;
+            foreach (var capture in current.Captures) pending.Enqueue(capture.Dependency);
+            foreach (var capture in current.Consumers) pending.Enqueue(capture.Consumer);
+            foreach (var prerequisite in current.Prerequisites) pending.Enqueue(prerequisite);
+            foreach (var dependent in current.ReleaseDependents) pending.Enqueue(dependent);
+        }
+
+        var retained = new HashSet<LifetimeOwner>();
+        foreach (var owner in owners)
+            if (owner.CurrentState == LifetimeOwnerState.CleanupFailed) pending.Enqueue(owner);
+        while (pending.TryDequeue(out var current))
+        {
+            if (!retained.Add(current)) continue;
+            // Returned captures remain in this graph while Release is executing or
+            // failed. Only successful Release is allowed to remove those real pins.
+            foreach (var capture in current.Captures) pending.Enqueue(capture.Dependency);
+            foreach (var dependent in current.ReleaseDependents) pending.Enqueue(dependent);
+        }
+
+        foreach (var owner in owners)
+        {
+            var blocked = retained.Contains(owner) && owner.CurrentState is not
+                (LifetimeOwnerState.Released or LifetimeOwnerState.CleanupFailed);
+            if (owner.BlockedByFailure == blocked) continue;
+            owner.BlockedByFailure = blocked;
+            if (!blocked && owner.CurrentState == LifetimeOwnerState.RetainedByFailedOwner)
+            {
+                owner.CurrentState = LifetimeOwnerState.Retiring;
+                foreach (var retirement in owner.Retirements) retirement.PendingFinalOwners.Add(owner);
+            }
+            else if (blocked && owner.CurrentState == LifetimeOwnerState.Retiring)
+                owner.CurrentState = LifetimeOwnerState.RetainedByFailedOwner;
+            QueueProgressUnsafe(owner);
         }
     }
 
@@ -660,6 +715,11 @@ public sealed class LifetimeDomain : IAsyncDisposable
     private void PruneOwnersUnsafe()
     {
         if (_ownersToPrune.Count == 0) return;
+        foreach (var owner in _ownersToPrune)
+            if (owner.Failures.Count != 0)
+                _prunedFailureResults[owner.Id] = new LifetimeCloseResult(
+                    Array.AsReadOnly(new[] { SnapshotOwnerUnsafe(owner) }),
+                    Array.AsReadOnly(owner.Failures.ToArray()));
         _owners.RemoveAll(_ownersToPrune.Contains);
         foreach (var scope in _scopes) scope.Owners.RemoveAll(_ownersToPrune.Contains);
         _ownersToPrune.Clear();
@@ -684,10 +744,20 @@ public sealed class LifetimeDomain : IAsyncDisposable
     private LifetimeCloseResult SnapshotUnsafe(LifetimeRetirement retirement)
     {
         var ids = retirement.Members.Select(owner => owner.Id).ToHashSet();
-        return new LifetimeCloseResult(Array.AsReadOnly(retirement.Members.Select(owner =>
-                new LifetimeOwnerSnapshot(owner.Id, owner.ModuleId, owner.CurrentState, owner.Readers, owner.Constructing,
-                    Array.AsReadOnly(owner.Captures.Select(capture => capture.Dependency.Id)
-                        .Concat(owner.Prerequisites.Select(prerequisite => prerequisite.Id)).Distinct().Order().ToArray()), owner.Failure)).ToArray()),
-            Array.AsReadOnly(retirement.Members.SelectMany(owner => owner.Failures).Where(failure => ids.Contains(failure.OwnerId)).ToArray()));
+        // Only the domain's final close owns historical failures outside its live members.
+        // Local retirements remain isolated, and live owner facts take precedence by ID.
+        var prunedFailures = retirement == _retirement
+            ? _prunedFailureResults.Where(pair => !ids.Contains(pair.Key)).Select(pair => pair.Value).ToArray()
+            : [];
+        return new LifetimeCloseResult(
+            Array.AsReadOnly(retirement.Members.Select(SnapshotOwnerUnsafe)
+                .Concat(prunedFailures.SelectMany(result => result.Owners)).ToArray()),
+            Array.AsReadOnly(retirement.Members.SelectMany(owner => owner.Failures)
+                .Concat(prunedFailures.SelectMany(result => result.Failures)).ToArray()));
     }
+
+    private static LifetimeOwnerSnapshot SnapshotOwnerUnsafe(LifetimeOwner owner) =>
+        new(owner.Id, owner.ModuleId, owner.CurrentState, owner.Readers, owner.Constructing,
+            Array.AsReadOnly(owner.Captures.Select(capture => capture.Dependency.Id)
+                .Concat(owner.Prerequisites.Select(prerequisite => prerequisite.Id)).Distinct().Order().ToArray()), owner.Failure);
 }

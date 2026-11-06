@@ -22,16 +22,16 @@ The first release focuses on modularity:
 | `AtomUI.Foundation` | Core runtime infrastructure for AtomUI. |
 | `AtomUI.Foundation.Generator` | Roslyn source generators for AtomUI.Foundation. |
 
-Current release:
+Current local version: `1.0.4-local.1`. Configure a local NuGet source containing both packages before restoring this version.
 
 ```bash
-dotnet add package AtomUI.Foundation --version 1.0.3
+dotnet add package AtomUI.Foundation --version 1.0.4-local.1
 ```
 
 If your project needs generated module catalogs, reference the generator as an analyzer:
 
 ```xml
-<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.3" PrivateAssets="all" />
+<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.4-local.1" PrivateAssets="all" />
 ```
 
 ## Modularity
@@ -85,6 +85,8 @@ The [architecture overview](docs/architecture/overview.md) indexes the canonical
 Version 1.0.2 preserves neutral descriptors and caller-owned instances while adding an opt-in managed service runtime with typed factories, owner-backed leases, scope sharing, and coordinated retirement. Managed behavior is enabled through `ModuleServiceRuntime`; existing descriptor registration does not activate a container or transfer ownership. See [verification contracts](docs/engineering/verification.md) for the tested scope and remaining cross-platform/product qualifications.
 
 Version 1.0.3 adds transactional module reconfiguration and joint domain publication. After all Stop notifications, domain cleanup and module reader drain progress together; managed service release still waits for module callbacks. Actual LuminEditor Core integration remains a separate qualification. See [module reconfiguration](docs/architecture/module-reconfiguration.md).
+
+The local 1.0.4 build includes the scope-retention and architecture-audit fixes, with implementation and original LuminEditor acceptance recorded in the [remediation evidence](docs/engineering/evidence/architecture-remediation-20261104.json). Local package publication is tracked separately from public NuGet releases.
 
 ## Local Development
 

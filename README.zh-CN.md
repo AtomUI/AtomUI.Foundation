@@ -21,16 +21,16 @@ AtomUI.Foundation 是 AtomUI 生态的基础设施仓库，提供可被其它 At
 | `AtomUI.Foundation` | AtomUI 核心运行时基础设施。 |
 | `AtomUI.Foundation.Generator` | AtomUI.Foundation 的 Roslyn 源生成器。 |
 
-当前版本：
+当前本地版本为 `1.0.4-local.1`。恢复此版本前，请配置包含两个包的本地 NuGet 源。
 
 ```bash
-dotnet add package AtomUI.Foundation --version 1.0.3
+dotnet add package AtomUI.Foundation --version 1.0.4-local.1
 ```
 
 如果项目需要生成模块目录，请把 generator 作为 analyzer 引入：
 
 ```xml
-<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.3" PrivateAssets="all" />
+<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.4-local.1" PrivateAssets="all" />
 ```
 
 ## Modularity
@@ -84,6 +84,8 @@ var result = await host.InitializeAsync();
 1.0.2 保留中立描述和调用方实例所有权，并新增可显式启用的受管服务运行时，提供 typed factory、owner-backed lease、scope 共享和协调退休。通过 `ModuleServiceRuntime` 启用受管能力；原有 descriptor 登记不会激活容器或转移所有权。已验证范围和仍待完成的跨平台/产品资格见[验证合同](docs/engineering/verification.md)。
 
 1.0.3 增加模块集合事务重配与领域联合发布。完整 Stop 通知后，领域清理和模块读者排空共同推进；受管服务 Release 仍等待模块回调结束。真实 LuminEditor Core 联合接入仍单独验收，见[模块动态重配](docs/architecture/module-reconfiguration.md)。
+
+本地 1.0.4 构建包含 scope 保留和架构审计修复，具体实现与原始 LuminEditor 联合验收见[修复证据](docs/engineering/evidence/architecture-remediation-20261104.json)。本地包发布与公开 NuGet 发布分别记录。
 
 ## 本地开发
 

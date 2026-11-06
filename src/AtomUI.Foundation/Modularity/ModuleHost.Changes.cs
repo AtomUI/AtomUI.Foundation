@@ -6,6 +6,9 @@ public sealed partial class ModuleHost
 {
     private readonly HashSet<ModuleId> _suspendedModules = [];
     private readonly HashSet<ModuleChangeRetirement> _retirements = [];
+    private RecoveryFailure? _recoveryFailure;
+
+    private sealed record RecoveryFailure(ModuleServiceTransition? Services, IReadOnlyList<ModuleDiagnostic> Diagnostics);
 
     public ModuleHostLease AcquireView(IEnumerable<ModuleId>? modules = null)
     {
@@ -42,7 +45,8 @@ public sealed partial class ModuleHost
         TaskCompletionSource<ModuleChangeResult> completion;
         lock (_stateLock)
         {
-            if (_callbackFrame.Value?.IsActive == true || _shutdownRequested || _phase != ModuleHostPhase.Initialized || _activeOperation is not null)
+            if (_callbackFrame.Value?.IsActive == true || _shutdownRequested || _recoveryFailure is not null ||
+                _phase != ModuleHostPhase.Initialized || _activeOperation is not null)
                 return ValueTask.FromResult(RejectedChange("The host is not available for a module change."));
             if (!ReferenceEquals(request.Baseline, Current) || !ReferenceEquals(request.Baseline.Host, this))
                 return ValueTask.FromResult(new ModuleChangeResult(ModuleChangeStatus.StaleBaseline, Current));
@@ -174,7 +178,7 @@ public sealed partial class ModuleHost
             var affected = removedIds.Concat(services?.AffectedModules ?? Enumerable.Empty<ModuleId>()).ToHashSet();
             if (preparation is not null)
             {
-                var domainAffected = preparation.AffectedModules.ToArray();
+                var domainAffected = InvokeCallback(() => preparation.AffectedModules.ToArray());
                 if (domainAffected.Any(id => !baseline.Composition.ModulesById.ContainsKey(id)))
                     throw new InvalidOperationException("Domain impact must identify modules in the current composition.");
                 affected.UnionWith(domainAffected);
@@ -188,7 +192,7 @@ public sealed partial class ModuleHost
             if (preparation is not null)
                 await InvokeCallbackAsync(async () => { await preparation.SuspendAsync(token).ConfigureAwait(false); return true; }).ConfigureAwait(false);
             var next = new ModuleHostView(this, checked(baseline.Generation + 1), candidate,
-                preparation is null ? baseline.State : preparation.State);
+                preparation is null ? baseline.State : InvokeCallback(() => preparation.State));
             lock (_stateLock)
             {
                 token.ThrowIfCancellationRequested();
@@ -200,13 +204,15 @@ public sealed partial class ModuleHost
                 suspended = false;
             }
             var retirement = StartTrackedCleanup(receipt => RetirePreviousAsync(removed, baseline.Services, services, preparation, receipt),
-                (baseline.Composition, services, preparation));
+                new RetirementResources(removed, services, preparation));
             return new ModuleChangeResult(ModuleChangeStatus.Committed, next, retirement: retirement);
         }
         catch (Exception exception)
         {
             var diagnostics = new List<ModuleDiagnostic> { FailureDiagnostic(exception, "ChangeModules") };
-            // Restore the old legal admission before waiting for candidate cleanup.
+            // Only proven recovery may reopen admission. Failed recovery remains
+            // isolated under this coordinator until global shutdown takes over.
+            var recovered = true;
             if (suspended)
             {
                 try
@@ -214,11 +220,18 @@ public sealed partial class ModuleHost
                     if (preparation is not null)
                         await InvokeCallbackAsync(async () => { await preparation.ResumeAsync().ConfigureAwait(false); return true; }).ConfigureAwait(false);
                 }
-                catch (Exception resume) { diagnostics.Add(FailureDiagnostic(resume, "ResumeModules")); }
-                lock (_stateLock) _suspendedModules.Clear();
+                catch (Exception resume)
+                {
+                    recovered = false;
+                    var failure = FailureDiagnostic(resume, "ResumeModules");
+                    diagnostics.Add(failure);
+                    lock (_stateLock) _recoveryFailure = new RecoveryFailure(services, [failure]);
+                }
+                if (recovered) lock (_stateLock) _suspendedModules.Clear();
             }
-            services?.Dispose();
-            var cleanup = StartTrackedCleanup(receipt => AbortCandidateAsync(created, candidate, preparation, receipt), (candidate, preparation));
+            if (recovered) services?.Dispose();
+            var cleanup = StartTrackedCleanup(receipt => AbortCandidateAsync(created, candidate, preparation, receipt),
+                new RetirementResources(created.ToArray(), candidate.ManagedServices, preparation));
             var canceled = exception is OperationCanceledException && token.IsCancellationRequested;
             return new ModuleChangeResult(canceled ? ModuleChangeStatus.Canceled : ModuleChangeStatus.Rejected,
                 baseline, diagnostics, cleanup);

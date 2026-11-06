@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AtomUI.Lifetimes;
@@ -20,6 +21,7 @@ internal static class ManagedRuntimeConsumer
         await VerifyFailedOwnerClosureAsync();
         await VerifyModuleChangesAsync();
         await VerifyPublishedDomainLeaseRetirementAsync();
+        await VerifyScopeRetirementBookkeepingAsync();
 #if NET8_0
         Console.WriteLine("MANAGED_RUNTIME_CONSUMER_OK net8.0");
 #elif NET10_0
@@ -27,6 +29,52 @@ internal static class ManagedRuntimeConsumer
 #else
         throw new PlatformNotSupportedException("This consumer fixture targets net8.0 and net10.0.");
 #endif
+    }
+
+    private static async Task VerifyScopeRetirementBookkeepingAsync()
+    {
+        var runtime = new ModuleServiceRuntime();
+        var releases = 0;
+        runtime.AddScopedFactory<Model>(Owner, _ => new(), _ => { releases++; return ValueTask.CompletedTask; });
+        runtime.Freeze();
+        var origin = runtime.CreateCandidate(runtime.Bindings, []); origin.Freeze();
+        var rebound = runtime.CreateCandidate(origin, []); rebound.Freeze();
+        var receipts = new List<WeakReference>();
+        for (var index = 0; index < 128; index++)
+            receipts.Add(CloseScope(origin, rebound));
+        GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+        Ensure(releases == 128, "Every real scope service must Release exactly once.");
+        Ensure(receipts.All(receipt => !receipt.IsAlive), $"Successful scopes must not leave retirement metadata in a live binding view (retained={receipts.Count(receipt => receipt.IsAlive)}).");
+        await runtime.DisposeAsync();
+
+        var failedRuntime = new ModuleServiceRuntime();
+        var failure = new InvalidOperationException("scope-release");
+        failedRuntime.AddScopedFactory<Model>(Owner, _ => new(), _ => ValueTask.FromException(failure));
+        failedRuntime.Freeze();
+        var candidate = failedRuntime.CreateCandidate(failedRuntime.Bindings, []); candidate.Freeze();
+        var scope = candidate.Root.CreateScope();
+        var lease = scope.Borrow<Model>();
+        var closing = scope.BeginRetirement();
+        Ensure(!closing.FinalCompletion.IsCompleted, "Scope retirement must wait for its actual lease.");
+        lease.Dispose();
+        Ensure(!(await closing.FinalCompletion).IsSuccess, "The scope must preserve its real Release failure.");
+        var final = await candidate.BeginRetirement().FinalCompletion;
+        Ensure(!final.IsSuccess && final.Failures.Any(item => ReferenceEquals(item.Exception, failure)),
+            "Candidate retirement must include the original failed local scope receipt.");
+        Ensure(!(await failedRuntime.CompleteShutdownAsync()).IsSuccess, "Global shutdown must retain the failed scope result.");
+        Console.WriteLine("SCOPE_RETIREMENT_CONSUMER_OK scopes=128 releases=128 failedReceipt=1");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference CloseScope(ModuleServiceBindings origin, ModuleServiceBindings rebound)
+    {
+        var scope = origin.Root.CreateScope();
+        using (scope.Borrow<Model>()) { }
+        var ticket = rebound.BindScope(scope).BeginRetirement();
+        // Exit the producer frame before the dedicated GC observation; an awaited
+        // helper can otherwise keep its last completed ticket on the continuation stack.
+        Ensure(ticket.FinalCompletion.GetAwaiter().GetResult().IsSuccess, "Rebound scope retirement must succeed.");
+        return new WeakReference(ticket);
     }
 
     private static async Task VerifySharedScopeRetirementAsync()

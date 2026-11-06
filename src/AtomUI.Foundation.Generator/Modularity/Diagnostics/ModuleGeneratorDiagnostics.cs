@@ -4,6 +4,14 @@ namespace AtomUI.Modularity.Generators.Diagnostics;
 
 internal static class ModuleGeneratorDiagnostics
 {
+    public static readonly DiagnosticDescriptor DependencyReferenceIsAmbiguous = new(
+        "ATOMUIMODGEN012",
+        "Module dependency reference cannot preserve assembly identity",
+        "Module '{0}' depends on '{1}' from assembly '{2}', but no unambiguous global or extern alias reference is available",
+        "AtomUI.Modularity",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static readonly DiagnosticDescriptor DuplicateModuleId = new(
         "ATOMUIMODGEN001",
         "Duplicate module id",

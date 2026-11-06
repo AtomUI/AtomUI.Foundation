@@ -1,0 +1,348 @@
+{
+  "date": "2026-11-05",
+  "version": "1.0.4-local.1",
+  "branch": "release/1.0",
+  "baselineCommit": "0d0a361cdef64f0000f19bb6ac5a8263c3b8e8aa",
+  "uncommitted": true,
+  "destination": "/Users/chinboy/Data/nuget-atomui-local",
+  "reusedImplementationEvidence": "docs/engineering/evidence/architecture-remediation-20261104.json",
+  "implementationChangedSinceQualification": false,
+  "metadataChanges": [
+    "build/Version.props",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "validation": {
+    "releaseBuildWarnings": 0,
+    "releaseBuildErrors": 0,
+    "runtimeTests": 200,
+    "generatorTests": 48,
+    "configuredGeneratorFromLocalSource": true,
+    "localSourceRuntimeConsumers": [
+      {
+        "tfm": "net8.0",
+        "passed": true
+      },
+      {
+        "tfm": "net10.0",
+        "passed": true
+      }
+    ],
+    "net8FrameworkPackResolution": "Existing Microsoft framework/reference/host packages reused through the global fallback cache; Foundation packages restored into a fresh run-local cache exclusively from AtomUILocal.",
+    "postCleanupRuntimeRuns": [
+      {
+        "tfm": "net8.0",
+        "command": [
+          "dotnet",
+          "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net8.0/bin/Release/net8.0/Consumer.dll"
+        ],
+        "exitCode": 0,
+        "stdout": "FOUNDATION_CHANGE_CONSUMER_OK A=1 B=3 D=0 preserved=1 joint=1 rejected=1 retired=1 abort=1\nDOMAIN_RETIREMENT_CONSUMER_OK published=1 complete=1 leaseReturned=1 Bshutdown=1\nSCOPE_RETIREMENT_CONSUMER_OK scopes=128 releases=128 failedReceipt=1\nMANAGED_RUNTIME_CONSUMER_OK net8.0\n"
+      },
+      {
+        "tfm": "net10.0",
+        "command": [
+          "dotnet",
+          "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net10.0/bin/Release/net10.0/Consumer.dll"
+        ],
+        "exitCode": 0,
+        "stdout": "FOUNDATION_CHANGE_CONSUMER_OK A=1 B=3 D=0 preserved=1 joint=1 rejected=1 retired=1 abort=1\nDOMAIN_RETIREMENT_CONSUMER_OK published=1 complete=1 leaseReturned=1 Bshutdown=1\nSCOPE_RETIREMENT_CONSUMER_OK scopes=128 releases=128 failedReceipt=1\nMANAGED_RUNTIME_CONSUMER_OK net10.0\n"
+      }
+    ]
+  },
+  "packages": {
+    "AtomUI.Foundation": {
+      "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.1.0.4-local.1.nupkg",
+      "sha256": "87b148f5b11726c7ecb5bdbb71fcc9efd95c65d90da28c432bce2eceda9fb8a7",
+      "size": 572090,
+      "version": "1.0.4-local.1",
+      "requiredAssets": [
+        "README.md",
+        "LICENSE",
+        "logo.png",
+        "lib/net8.0/AtomUI.Foundation.dll",
+        "lib/net10.0/AtomUI.Foundation.dll"
+      ],
+      "dependencies": [],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/AtomUI/AtomUI.Foundation",
+        "commit": "0d0a361cdef64f0000f19bb6ac5a8263c3b8e8aa"
+      },
+      "assemblies": {
+        "lib/net10.0/AtomUI.Foundation.dll": "4d7d42c74c54aa1e162f09cb5290820ec496fd51087f2da45af5b32d41be2db9",
+        "lib/net8.0/AtomUI.Foundation.dll": "5fafba4955373c2036d2c0bc46f28ead30b7be1e52cfc02dd0b3cdc2452acdce"
+      },
+      "publishedPath": "/Users/chinboy/Data/nuget-atomui-local/AtomUI.Foundation.1.0.4-local.1.nupkg",
+      "installedSource": "/Users/chinboy/Data/nuget-atomui-local",
+      "installedPackageSha256": "87b148f5b11726c7ecb5bdbb71fcc9efd95c65d90da28c432bce2eceda9fb8a7"
+    },
+    "AtomUI.Foundation.Generator": {
+      "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.Generator.1.0.4-local.1.nupkg",
+      "sha256": "f3e03183c69789161f4089b4667b7a9625ca8409c014b6e89b0e3e16d2f81a38",
+      "size": 384975,
+      "version": "1.0.4-local.1",
+      "requiredAssets": [
+        "README.md",
+        "LICENSE",
+        "logo.png",
+        "analyzers/dotnet/cs/AtomUI.Foundation.Generator.dll",
+        "buildTransitive/AtomUI.Foundation.Generator.props"
+      ],
+      "dependencies": [],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/AtomUI/AtomUI.Foundation",
+        "commit": "0d0a361cdef64f0000f19bb6ac5a8263c3b8e8aa"
+      },
+      "assemblies": {
+        "analyzers/dotnet/cs/AtomUI.Foundation.Generator.dll": "1a0f1055bf73e745c3c8e51de423954fadb81ce62116fc22328e15f87b3aa2dd"
+      },
+      "publishedPath": "/Users/chinboy/Data/nuget-atomui-local/AtomUI.Foundation.Generator.1.0.4-local.1.nupkg",
+      "installedSource": "/Users/chinboy/Data/nuget-atomui-local",
+      "installedPackageSha256": "f3e03183c69789161f4089b4667b7a9625ca8409c014b6e89b0e3e16d2f81a38"
+    }
+  },
+  "consumerCommands": [
+    {
+      "name": "generator-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/configured-consumer/Consumer.csproj",
+        "--configfile",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/NuGet.Config"
+      ],
+      "exitCode": 0,
+      "log": ".artifacts/local-release-20261105/generator-restore.log"
+    },
+    {
+      "name": "generator-run",
+      "command": [
+        "dotnet",
+        "run",
+        "--project",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/configured-consumer/Consumer.csproj",
+        "-c",
+        "Release",
+        "--no-restore"
+      ],
+      "exitCode": 0,
+      "log": ".artifacts/local-release-20261105/generator-run.log"
+    },
+    {
+      "name": "net8.0-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "--configfile",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/NuGet.Config",
+        "-p:FoundationConsumerVersion=1.0.4-local.1",
+        "-p:TargetFrameworks=net8.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net8.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net8.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/verify-cache",
+        "-p:NuGetAudit=false"
+      ],
+      "exitCode": 1,
+      "log": ".artifacts/local-release-20261105/net8.0-restore.log"
+    },
+    {
+      "name": "net8.0-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "--configfile",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/NuGet.Config",
+        "-p:FoundationConsumerVersion=1.0.4-local.1",
+        "-p:TargetFrameworks=net8.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net8.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net8.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/verify-cache",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false"
+      ],
+      "exitCode": 0,
+      "log": ".artifacts/local-release-20261105/net8.0-restore.log"
+    },
+    {
+      "name": "net8.0-run",
+      "command": [
+        "dotnet",
+        "run",
+        "--project",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net8.0",
+        "--no-restore",
+        "-p:FoundationConsumerVersion=1.0.4-local.1",
+        "-p:TargetFrameworks=net8.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net8.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net8.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/verify-cache",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false"
+      ],
+      "exitCode": 0,
+      "log": ".artifacts/local-release-20261105/net8.0-run.log"
+    },
+    {
+      "name": "net10.0-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "--configfile",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/NuGet.Config",
+        "-p:FoundationConsumerVersion=1.0.4-local.1",
+        "-p:TargetFrameworks=net10.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net10.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net10.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/verify-cache",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false"
+      ],
+      "exitCode": 0,
+      "log": ".artifacts/local-release-20261105/net10.0-restore.log"
+    },
+    {
+      "name": "net10.0-run",
+      "command": [
+        "dotnet",
+        "run",
+        "--project",
+        "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/tests/fixtures/managed-runtime-consumer/Consumer.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0",
+        "--no-restore",
+        "-p:FoundationConsumerVersion=1.0.4-local.1",
+        "-p:TargetFrameworks=net10.0",
+        "-p:BaseIntermediateOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net10.0/obj/",
+        "-p:BaseOutputPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/runtime-net10.0/bin/",
+        "-p:RestorePackagesPath=/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/local-release-20261105/verify-cache",
+        "-p:RestoreFallbackFolders=/Users/chinboy/.nuget/packages",
+        "-p:NuGetAudit=false"
+      ],
+      "exitCode": 0,
+      "log": ".artifacts/local-release-20261105/net10.0-run.log"
+    }
+  ],
+  "localPublicationComplete": true,
+  "publicNugetPublication": false,
+  "committed": false,
+  "implementationReuse": {
+    "allNonVersionProductFilesMatch": true,
+    "priorCandidate": "1.0.3-audit.g18d7b12e3343",
+    "priorSourceFingerprint": "18d7b12e3343ce13d709cb184f7d563d9d0a16974aada3d875eda14296d7e685",
+    "exactNewVersionNativeAotOrLuminRerun": false
+  },
+  "cleanup": {
+    "complete": true,
+    "removed": [
+      {
+        "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.1.0.0.nupkg",
+        "id": "AtomUI.Foundation",
+        "version": "1.0.0",
+        "sha256": "d6cd50ace6c66b39657fac49dea0021a44a09ea2571f97ba966a3e8bc4683cec"
+      },
+      {
+        "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.1.0.1.nupkg",
+        "id": "AtomUI.Foundation",
+        "version": "1.0.1",
+        "sha256": "02455eff0e5bfe08e5a3cdd9f4149aeb0b6e2c765ccbf7bfaeebf7c5224b592e"
+      },
+      {
+        "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.1.0.2.nupkg",
+        "id": "AtomUI.Foundation",
+        "version": "1.0.2",
+        "sha256": "6fc35ff656e628d06747a5b1c4ff8f543df9096f3a25fd71fd71cf1a2c177e4a"
+      },
+      {
+        "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.1.0.3.nupkg",
+        "id": "AtomUI.Foundation",
+        "version": "1.0.3",
+        "sha256": "7730c490390f226f03bf8cd307ff1c4cd6e9302f43d138e510efc3963208bc43"
+      },
+      {
+        "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.Generator.1.0.0.nupkg",
+        "id": "AtomUI.Foundation.Generator",
+        "version": "1.0.0",
+        "sha256": "a8617d4ad36d3134907786902c24efbe12475dc940234508a4ce8ff49b01e51b"
+      },
+      {
+        "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.Generator.1.0.1.nupkg",
+        "id": "AtomUI.Foundation.Generator",
+        "version": "1.0.1",
+        "sha256": "3a7ad46cb51a0952fd5e1e9ae9b836e71cf2246a5b6f7a61e03a2a447b7c0d69"
+      },
+      {
+        "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.Generator.1.0.2.nupkg",
+        "id": "AtomUI.Foundation.Generator",
+        "version": "1.0.2",
+        "sha256": "7706ce516357877e19c8fbf1be06a461bbd0de3733040c327ca61ab1ebb07546"
+      },
+      {
+        "path": "/Users/chinboy/Projects/dotnet/AtomUI.Foundation/.artifacts/Nuget/Release/AtomUI.Foundation.Generator.1.0.3.nupkg",
+        "id": "AtomUI.Foundation.Generator",
+        "version": "1.0.3",
+        "sha256": "3d66255058b87347eacefa14d27d8fcf82db849ad46d529fe48edbd782163524"
+      },
+      {
+        "path": "/Users/chinboy/.nuget/packages/atomui.foundation",
+        "versions": [
+          "1.0.0",
+          "1.0.1",
+          "1.0.2",
+          "1.0.2-reconfiguration.20261102.97c47fe35305",
+          "1.0.3"
+        ]
+      },
+      {
+        "path": "/Users/chinboy/.nuget/packages/atomui.foundation.generator",
+        "versions": [
+          "1.0.0",
+          "1.0.2"
+        ]
+      }
+    ],
+    "localFeedFoundationPackagesBefore": 0,
+    "lateOldGlobalCacheRemoval": [
+      {
+        "path": "/Users/chinboy/.nuget/packages/atomui.foundation",
+        "versions": [
+          "1.0.0"
+        ]
+      },
+      {
+        "path": "/Users/chinboy/.nuget/packages/atomui.foundation.generator",
+        "versions": [
+          "1.0.0"
+        ]
+      }
+    ],
+    "oldGlobalPackageRootsAbsent": true,
+    "removedVerificationSourcesAndCache": [
+      ".artifacts/local-release-20261105/configured-consumer",
+      ".artifacts/local-release-20261105/verify-cache",
+      ".artifacts/local-release-20261105/Directory.Build.props",
+      ".artifacts/local-release-20261105/Directory.Build.targets",
+      ".artifacts/local-release-20261105/Directory.Packages.props",
+      ".artifacts/local-release-20261105/NuGet.Config",
+      ".artifacts/local-release-20261105/verify_source.py"
+    ]
+  },
+  "details": {
+    "archive": "local-release-20261105-1.0.4-local.1-f1c56cb9949667bc.json.gz",
+    "archiveSha256": "f1c56cb9949667bc0650d31c419e7b212dd7fc8aede8de8975744b7fbd3fc69d",
+    "compressedBytes": 16512
+  },
+  "gitCommitCreated": false,
+  "gitTagCreated": false,
+  "gitPushed": false
+}

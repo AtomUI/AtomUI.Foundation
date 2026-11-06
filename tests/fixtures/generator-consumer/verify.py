@@ -25,6 +25,7 @@ VERSION = "1.0.1-generator-consumer"
 
 
 def main():
+    global VERSION
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dotnet-runner", type=Path)
     parser.add_argument("--work-dir", type=Path, default=Path(".artifacts/generator-consumer"),
@@ -32,7 +33,10 @@ def main():
     parser.add_argument("--mode", choices=("all", "project", "package"), default="all")
     parser.add_argument("--case", choices=("all", "default", "configured", "invalid"), default="all")
     parser.add_argument("--aot", action="store_true", help="publish the managed lifetime consumer as local Native AOT")
+    parser.add_argument("--package-version", default=VERSION,
+                        help="unique candidate identity used by all packaged consumers")
     args = parser.parse_args()
+    VERSION = args.package_version
     work = args.work_dir if args.work_dir.is_absolute() else ROOT / args.work_dir
     work = work.resolve()
     if work == ROOT or not work.is_relative_to(ROOT):

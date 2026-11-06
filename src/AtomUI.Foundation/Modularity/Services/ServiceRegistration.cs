@@ -31,14 +31,14 @@ internal sealed class ServiceRegistration<T>(ModuleId owner, ModuleServiceLifeti
             scope.State.Pending++;
         }
         var reserved = false;
-        LifetimeOwner? reservation = null;
+        var releaseState = new ReleaseState(runtime.Gate, scope.State, this, release);
         try
         {
             return scope.Owners.Create<T>(Owner, current =>
             {
                 lock (runtime.Gate)
                 {
-                    reservation = current;
+                    releaseState.Owner = current;
                     Owners.Add(current);
                     Pending--;
                     scope.State.Pending--;
@@ -54,16 +54,40 @@ internal sealed class ServiceRegistration<T>(ModuleId owner, ModuleServiceLifeti
                 {
                     context.Close();
                 }
-            }, async value =>
-            {
-                await release(value).ConfigureAwait(false);
-                lock (runtime.Gate) Owners.Remove(reservation!);
-                scope.RemoveCached(this);
-            }, stop);
+            }, releaseState.ReleaseAsync, stop);
         }
         finally
         {
             if (!reserved) lock (runtime.Gate) { Pending--; scope.State.Pending--; Monitor.PulseAll(runtime.Gate); }
+        }
+    }
+
+    // A separate method-group target prevents the long-lived Release delegate from sharing
+    // the factory lambda's closure, which necessarily includes the complete binding wrapper.
+    private sealed class ReleaseState(object gate, ModuleServiceScope.ScopeState scope,
+        ServiceRegistration registration, Func<T, ValueTask> release)
+    {
+        private ServiceRegistration? _registration = registration;
+        private readonly List<LifetimeOwner> _owners = registration.Owners;
+        internal LifetimeOwner? Owner;
+
+        internal async ValueTask ReleaseAsync(T value)
+        {
+            var released = false;
+            try
+            {
+                await release(value).ConfigureAwait(false);
+                released = true;
+            }
+            finally
+            {
+                if (released) lock (gate) _owners.Remove(Owner!);
+                // Admission is already closed. Cache/registration metadata is not
+                // a second retention authority for a failed real owner, and may
+                // contain declared factory dependencies that were never captured.
+                scope.RemoveCached(_registration!);
+                _registration = null;
+            }
         }
     }
 }
