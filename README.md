@@ -22,16 +22,16 @@ The first release focuses on modularity:
 | `AtomUI.Foundation` | Core runtime infrastructure for AtomUI. |
 | `AtomUI.Foundation.Generator` | Roslyn source generators for AtomUI.Foundation. |
 
-Current local version: `1.0.4-local.1`. Configure a local NuGet source containing both packages before restoring this version.
+Current version: `1.0.4`.
 
 ```bash
-dotnet add package AtomUI.Foundation --version 1.0.4-local.1
+dotnet add package AtomUI.Foundation --version 1.0.4
 ```
 
 If your project needs generated module catalogs, reference the generator as an analyzer:
 
 ```xml
-<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.4-local.1" PrivateAssets="all" />
+<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.4" PrivateAssets="all" />
 ```
 
 ## Modularity
@@ -86,7 +86,7 @@ Version 1.0.2 preserves neutral descriptors and caller-owned instances while add
 
 Version 1.0.3 adds transactional module reconfiguration and joint domain publication. After all Stop notifications, domain cleanup and module reader drain progress together; managed service release still waits for module callbacks. Actual LuminEditor Core integration remains a separate qualification. See [module reconfiguration](docs/architecture/module-reconfiguration.md).
 
-The local 1.0.4 build includes the scope-retention and architecture-audit fixes, with implementation and original LuminEditor acceptance recorded in the [remediation evidence](docs/engineering/evidence/architecture-remediation-20261104.json). Local package publication is tracked separately from public NuGet releases.
+Version 1.0.4 includes the 2026-11-04 architecture-audit fixes and the 2026-11-05 [optimization proposal](docs/architecture/2026-11-05-foundation-architecture-optimization-proposal.md): one composition change transaction for startup, reconfiguration and shutdown, Transient request owners, a single retirement ledger, non-blocking service admission, value-equal generator models built against Roslyn 4.8, and `TryAcquireView`/`TryBorrow`. Behavior changes and remaining qualifications are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Local Development
 

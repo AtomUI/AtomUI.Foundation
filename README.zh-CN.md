@@ -21,16 +21,16 @@ AtomUI.Foundation 是 AtomUI 生态的基础设施仓库，提供可被其它 At
 | `AtomUI.Foundation` | AtomUI 核心运行时基础设施。 |
 | `AtomUI.Foundation.Generator` | AtomUI.Foundation 的 Roslyn 源生成器。 |
 
-当前本地版本为 `1.0.4-local.1`。恢复此版本前，请配置包含两个包的本地 NuGet 源。
+当前版本为 `1.0.4`。
 
 ```bash
-dotnet add package AtomUI.Foundation --version 1.0.4-local.1
+dotnet add package AtomUI.Foundation --version 1.0.4
 ```
 
 如果项目需要生成模块目录，请把 generator 作为 analyzer 引入：
 
 ```xml
-<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.4-local.1" PrivateAssets="all" />
+<PackageReference Include="AtomUI.Foundation.Generator" Version="1.0.4" PrivateAssets="all" />
 ```
 
 ## Modularity
@@ -85,7 +85,7 @@ var result = await host.InitializeAsync();
 
 1.0.3 增加模块集合事务重配与领域联合发布。完整 Stop 通知后，领域清理和模块读者排空共同推进；受管服务 Release 仍等待模块回调结束。真实 LuminEditor Core 联合接入仍单独验收，见[模块动态重配](docs/architecture/module-reconfiguration.md)。
 
-本地 1.0.4 构建包含 scope 保留和架构审计修复，具体实现与原始 LuminEditor 联合验收见[修复证据](docs/engineering/evidence/architecture-remediation-20261104.json)。本地包发布与公开 NuGet 发布分别记录。
+1.0.4 包含 2026-11-04 架构审计修复与 2026-11-05 [优化重构方案](docs/architecture/2026-11-05-foundation-architecture-optimization-proposal.md)：启动、重配与关闭统一为同一组合变更事务，Transient 请求 owner，单一退休 ledger，服务准入不再同步等待，生成器值相等模型并针对 Roslyn 4.8 编译，以及 `TryAcquireView`/`TryBorrow`。行为变化与尚待取得的资格见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 本地开发
 

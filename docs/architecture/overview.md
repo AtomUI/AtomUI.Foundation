@@ -12,6 +12,8 @@ AtomUI.Foundation 为 AtomUI 生态提供模块身份、Required 依赖解析、
 
 2026-11-05 在上述修复之上完成一轮边界内部的结构评估，形成[架构优化重构方案](2026-11-05-foundation-architecture-optimization-proposal.md)：统一启动、重配与关闭为同一组合变更事务，为 Transient 建立请求 owner 释放触发，合并退休簿记为单一 ledger，收敛锁层级与阻塞等待，修正生成器增量缓存与 SDK 兼容，并补齐公开 API 基线、AOT 注解与发布门禁。该方案已于同日批准，各正式分册已按其第 8 节完成修订；修订后的合同描述实现必须满足的目标行为，实现与资格仍须由新证据确认。版本状态移至 [CHANGELOG](../../CHANGELOG.md)。
 
+2026-11-05 方案 P0–P5 实施完成后，版本设为 `1.0.4`，公开 API 基线并入 `PublicAPI.Shipped.txt`。发布资格与尚待取得的证据见 [CHANGELOG](../../CHANGELOG.md)。
+
 ## 设计入口
 
 | 文档 | 权威范围 |

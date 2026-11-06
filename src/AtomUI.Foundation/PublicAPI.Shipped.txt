@@ -199,6 +199,7 @@ AtomUI.Modularity.ModuleHost.ResolveModules() -> AtomUI.Modularity.ModuleHostRes
 AtomUI.Modularity.ModuleHost.RunModulePhaseAsync(AtomUI.Modularity.ModulePhaseId phaseId, AtomUI.Modularity.ModuleHostPhase requiredPhase, AtomUI.Modularity.ModulePhaseExecutionOrder executionOrder, System.Func<AtomUI.Modularity.ModulePhaseContext!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! phase, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), bool rollbackOnFailure = true) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
 AtomUI.Modularity.ModuleHost.Services.get -> AtomUI.Modularity.ModuleServiceRegistry!
 AtomUI.Modularity.ModuleHost.ShutdownAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
+AtomUI.Modularity.ModuleHost.TryAcquireView(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleId>? modules, out AtomUI.Modularity.ModuleHostLease? lease) -> bool
 AtomUI.Modularity.ModuleHost.Validate() -> AtomUI.Modularity.ModuleHostValidationResult!
 AtomUI.Modularity.ModuleHostLease
 AtomUI.Modularity.ModuleHostLease.Dispose() -> void
@@ -337,6 +338,7 @@ AtomUI.Modularity.Services.ModuleServiceScope.Borrow<T>() -> AtomUI.Lifetimes.Li
 AtomUI.Modularity.Services.ModuleServiceScope.CreateScope() -> AtomUI.Modularity.Services.ModuleServiceScope!
 AtomUI.Modularity.Services.ModuleServiceScope.DisposeAsync() -> System.Threading.Tasks.ValueTask
 AtomUI.Modularity.Services.ModuleServiceScope.ShareFrom<T>(AtomUI.Modularity.Services.ModuleServiceScope! source) -> void
+AtomUI.Modularity.Services.ModuleServiceScope.TryBorrow<T>(out AtomUI.Lifetimes.LifetimeLease<T!>? lease) -> bool
 AtomUI.Modularity.Services.ModuleServiceShutdownException
 AtomUI.Modularity.Services.ModuleServiceShutdownException.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<AtomUI.Modularity.ModuleDiagnostic!>!
 AtomUI.Modularity.Services.ModuleServiceShutdownException.ModuleServiceShutdownException(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleDiagnostic!>! diagnostics) -> void
@@ -355,6 +357,7 @@ const AtomUI.Modularity.ModuleDiagnosticCodes.DependencyCycle = "ATOMUIMOD003" -
 const AtomUI.Modularity.ModuleDiagnosticCodes.DiagnosticsObserverFailed = "ATOMUIMOD010" -> string!
 const AtomUI.Modularity.ModuleDiagnosticCodes.DuplicateModuleId = "ATOMUIMOD001" -> string!
 const AtomUI.Modularity.ModuleDiagnosticCodes.InvalidLifecycleTransition = "ATOMUIMOD009" -> string!
+const AtomUI.Modularity.ModuleDiagnosticCodes.ModuleChangeRejected = "ATOMUICHANGE001" -> string!
 const AtomUI.Modularity.ModuleDiagnosticCodes.ModuleLifecycleFailed = "ATOMUIMOD007" -> string!
 const AtomUI.Modularity.ModuleDiagnosticCodes.RequiredDependencyMissing = "ATOMUIMOD002" -> string!
 const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.CleanupFailed = "ATOMUISVC005" -> string!
@@ -362,6 +365,7 @@ const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.DependencyCycle = 
 const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.OwnerRetainedAfterCleanupFailure = "ATOMUISVC006" -> string!
 const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.RequiredDependencyMissing = "ATOMUISVC001" -> string!
 const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.SingletonCapturesScoped = "ATOMUISVC003" -> string!
+const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.SingletonCapturesTransient = "ATOMUISVC004" -> string!
 override AtomUI.Lifetimes.LifetimeFailure.Equals(object? obj) -> bool
 override AtomUI.Lifetimes.LifetimeFailure.GetHashCode() -> int
 override AtomUI.Lifetimes.LifetimeFailure.ToString() -> string!
@@ -417,7 +421,9 @@ virtual AtomUI.Modularity.ModuleBase.Shutdown(AtomUI.Modularity.ModuleShutdownCo
 virtual AtomUI.Modularity.ModuleBase.ShutdownAsync(AtomUI.Modularity.ModuleShutdownContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
 virtual AtomUI.Modularity.ModuleChangePreparation.AbortAsync() -> System.Threading.Tasks.ValueTask
 virtual AtomUI.Modularity.ModuleChangePreparation.AffectedModules.get -> System.Collections.Generic.IReadOnlyCollection<AtomUI.Modularity.ModuleId>!
+virtual AtomUI.Modularity.ModuleChangePreparation.CompleteCurrentAsync() -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
 virtual AtomUI.Modularity.ModuleChangePreparation.CompletePreviousAsync() -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
 virtual AtomUI.Modularity.ModuleChangePreparation.ResumeAsync() -> System.Threading.Tasks.ValueTask
+virtual AtomUI.Modularity.ModuleChangePreparation.StopCurrent() -> void
 virtual AtomUI.Modularity.ModuleChangePreparation.StopPrevious() -> void
 virtual AtomUI.Modularity.ModuleChangePreparation.SuspendAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
