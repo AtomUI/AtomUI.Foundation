@@ -1,6 +1,6 @@
 # Foundation 架构优化重构方案
 
-状态：2026-11-05 已批准；第 8 节列出的正式分册修订已于同日完成，实施尚未开始。日期：2026-11-05。基线：`release/1.0` / `0d0a361` 加本地工作区 1.0.4 修复（26 个文件未提交）。本文保存决策依据与阶段安排，不作为独立权威合同；正式行为以修订后的各分册为准，后续按第 6 节形成逐任务实施计划。产品实现不因本文更新而交付。
+状态：2026-11-05 已批准；第 8 节列出的正式分册修订已于同日完成；P0–P5 已于同日在 `release/1.0` 实施，未完成项见第 6 节末尾。日期：2026-11-05。基线：`release/1.0` / `0d0a361` 加本地工作区 1.0.4 修复（26 个文件未提交）。本文保存决策依据与阶段安排，不作为独立权威合同；正式行为以修订后的各分册为准，后续按第 6 节形成逐任务实施计划。产品实现不因本文更新而交付。
 
 正式入口为[架构总览](overview.md)，具体合同见[模块宿主](modularity.md)、[模块动态重配事务](module-reconfiguration.md)、[服务登记](service-registration.md)、[受管生命周期](managed-lifetimes.md)、[源码生成](source-generation.md)与[验证合同](../engineering/verification.md)。冲突时以这些正式分册为准。
 
@@ -176,6 +176,23 @@ P4 已于 2026-11-05 完成：
 - 删除显示名推断里的 `DataGrid` 前缀剥除与 `Visit` 死分支。
 - 生成器改为针对 Roslyn 4.8.0 编译。验证脚本新增 `--sdk8-loader`，验证工作流启用它；本机只有 SDK 10，该用例未在本机运行，资格以 CI 结果为准。
 - 验证：Release 双目标构建 0 警告；生成器 52 个用例通过（新增 3 个：模块编辑重新生成、诊断保持源码位置、无产品前缀）；运行时 219 个通过。真实消费者除 Native AOT 外全部通过。
+
+P5 已于 2026-11-05 完成，至此 P0–P5 全部完成：
+
+- 新增 `ModuleHost.TryAcquireView` 与 `ModuleServiceScope.TryBorrow`；`TryBorrow` 对调用期间并发开始的暂停不作吸收，已写入分册。
+- 变更拒绝保留候选阶段的结构化诊断；`ATOMUICHANGE001` 以 `ModuleDiagnosticCodes.ModuleChangeRejected` 公开，退役编号在注释中说明。
+- `CreateModules()` 标记 `[Obsolete]`；两个有意覆盖该入口的既有用例以局部 pragma 抑制 CS0618，断言未改。
+- 运行时开启 `IsAotCompatible` 与 `IsTrimmable`，Release 构建 0 警告。
+- 发布工作流：打包前运行消费者验证，资产清单加入 `buildTransitive` 属性桥，发布到 nuget.org 前要求目标提交的验证工作流已成功。
+- 验证：运行时 224 个用例连续 10 轮通过（新增 5 个），生成器 52 个通过；真实消费者除 Native AOT 外全部通过。
+
+未完成项及原因：
+
+- 证据 JSON 与 gz 归档迁出仓库：需要发布附件或独立分支，均属对外发布或新分支，留待单独决定。
+- `PublicAPI.Unshipped.txt` 并入 Shipped：按规则在正式发布时进行。
+- Native AOT 消费者证据：本机 SDK 10.0.300 自带的 `Microsoft.DotNet.ILCompiler` 10.0.8 被 NuGet 漏洞审计（GHSA-p3jp-9v83-76w9）拦截，需更新 SDK 后补跑。
+- .NET 8 SDK 装载用例：本机无 .NET 8 SDK，只在 CI 运行。
+- 原 LuminEditor 1000 轮联合场景：不在本仓库，未重跑。
 
 ## 7. 验收矩阵
 

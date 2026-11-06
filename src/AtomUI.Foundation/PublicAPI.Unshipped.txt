@@ -2,3 +2,6 @@
 virtual AtomUI.Modularity.ModuleChangePreparation.CompleteCurrentAsync() -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
 virtual AtomUI.Modularity.ModuleChangePreparation.StopCurrent() -> void
 const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.SingletonCapturesTransient = "ATOMUISVC004" -> string!
+AtomUI.Modularity.ModuleHost.TryAcquireView(System.Collections.Generic.IEnumerable<AtomUI.Modularity.ModuleId>? modules, out AtomUI.Modularity.ModuleHostLease? lease) -> bool
+AtomUI.Modularity.Services.ModuleServiceScope.TryBorrow<T>(out AtomUI.Lifetimes.LifetimeLease<T!>? lease) -> bool
+const AtomUI.Modularity.ModuleDiagnosticCodes.ModuleChangeRejected = "ATOMUICHANGE001" -> string!

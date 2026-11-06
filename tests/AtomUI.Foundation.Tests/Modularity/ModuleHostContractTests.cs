@@ -160,7 +160,9 @@ public sealed class ModuleHostContractTests
         Assert.True((await host.InitializeAsync(TestContext.Current.CancellationToken)).IsSuccess);
         Assert.True((await host.ShutdownAsync(TestContext.Current.CancellationToken)).IsSuccess);
 
+#pragma warning disable CS0618 // Exercises the obsolete synchronous compatibility entry on purpose.
         var results = new[] { host.ResolveModules(), host.CreateModules(), await host.CreateModulesAsync(TestContext.Current.CancellationToken), await host.PreConfigureServicesAsync(TestContext.Current.CancellationToken), await host.ConfigureServicesAsync(TestContext.Current.CancellationToken), await host.PostConfigureServicesAsync(TestContext.Current.CancellationToken), host.FreezeServices(), await host.InitializeModulesAsync(TestContext.Current.CancellationToken), await host.InitializeAsync(TestContext.Current.CancellationToken), await host.RunModulePhaseAsync(ModulePhaseId.FromType<DomainPhase>(), ModuleHostPhase.Shutdown, ModulePhaseExecutionOrder.Forward, (_, _) => ValueTask.CompletedTask, TestContext.Current.CancellationToken) };
+#pragma warning restore CS0618
 
         Assert.All(results, result => Assert.Equal(ModuleDiagnosticCodes.InvalidLifecycleTransition, Assert.Single(result.Diagnostics).Code));
         Assert.Equal(ModuleHostPhase.Shutdown, host.Phase);

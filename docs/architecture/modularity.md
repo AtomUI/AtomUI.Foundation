@@ -75,7 +75,7 @@
 
 重配窗口内的视图获取是常规状态而非异常。新增 `TryAcquireView(IEnumerable<ModuleId>? modules, out ModuleHostLease? lease)`：Host 未运行、模块正在关闭或准入已暂停时返回 false 且不抛出；现有 `AcquireView` 抛异常入口保留。参数非法（未启用的模块）仍抛 `ArgumentException`。
 
-事务内部以携带结构化诊断的异常传递失败，`ModuleChangeResult.Diagnostics` 直接转发候选阶段的原诊断列表，保留模块 id、诊断码与阶段，不把诊断拼接成字符串后再包装。变更拒绝码 `ATOMUICHANGE001` 进入 `ModuleDiagnosticCodes`；历史编号缺口以注释说明，不复用。
+事务内部以携带结构化诊断的异常传递候选阶段失败。`ModuleChangeResult.Diagnostics` 先给出一条阶段为 `ChangeModules` 的汇总诊断，其后原样附上候选阶段的诊断列表，保留模块 id、诊断码与阶段，不再只剩拼接后的字符串。变更拒绝码 `ATOMUICHANGE001` 以 `ModuleDiagnosticCodes.ModuleChangeRejected` 公开；`ATOMUIMOD004`–`006` 与 `008` 为已退役编号，在常量类注释中说明，不复用。
 
 诊断接收器是观察者，其异常不得遮盖原始模块错误或打断回滚。原始错误及接收器故障分开保存，不将后者递归报告给同一接收器。Result 成功语义为不含 Error，Warning/Info 不自动使操作失败；1.0.1 仍按诊断数量判断成功，1.0.2 改为按 Error 严重级别判断。
 

@@ -127,6 +127,15 @@ public sealed class ModuleServiceBindings
         return batch;
     }
 
+    /// <summary>Like <see cref="GetRegistration"/>, but returns null while the bindings are retiring. Call under Runtime.Gate.</summary>
+    internal ServiceRegistration? FindRegistration(Type type)
+    {
+        if (!_frozen) throw new InvalidOperationException("Managed service registrations are not frozen.");
+        if (!_registrations.TryGetValue(type, out var registration))
+            throw new InvalidOperationException($"Managed service '{type.FullName}' is not registered.");
+        return _retiring ? null : registration;
+    }
+
     internal ServiceRegistration GetRegistration(Type type)
     {
         lock (Runtime.Gate)

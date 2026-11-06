@@ -168,7 +168,9 @@ public sealed class ModuleHostCoordinationTests
         var events = new List<string>();
         var host = Host(() => { factoryCalls++; return new First { OnPreConfigure = _ => { events.Add("pre"); return ValueTask.CompletedTask; }, OnInitialize = _ => { events.Add("initialize"); return ValueTask.CompletedTask; } }; });
         Assert.True(host.ResolveModules().IsSuccess);
+#pragma warning disable CS0618 // Exercises the obsolete synchronous compatibility entry on purpose.
         Assert.True(host.CreateModules().IsSuccess);
+#pragma warning restore CS0618
         Assert.True((await host.PreConfigureServicesAsync(TestContext.Current.CancellationToken)).IsSuccess);
 
         Assert.True((await host.InitializeAsync(TestContext.Current.CancellationToken)).IsSuccess);

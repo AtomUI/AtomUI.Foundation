@@ -93,7 +93,7 @@ LuminEditor 的 Foundation-owned 命令分支是独立门禁。Core-owned 结果
 
 打包消费使用隔离的 NuGet 缓存或其他可证明不命中旧同版本包的方式，记录包/二进制身份；不因此创建研发 checkout 或新分支。普通 PR 验证与发布流程分开，源代码变化须触发适用验证，发布仍需要明确发布操作。
 
-发布门禁：发布工作流在打包前运行消费者验证脚本，并要求目标 SHA 的验证工作流已成功；PublicAPI 基线无未声明变更，AOT/trim 分析器 0 警告；包资产清单含 Generator `buildTransitive` 属性桥。
+发布门禁：发布工作流在打包前运行消费者验证脚本（含 .NET 8 SDK 装载用例），发布到 nuget.org 时要求目标提交的验证工作流已成功；PublicAPI 基线无未声明变更，AOT/trim 分析器 0 警告；包资产清单含 Generator `buildTransitive` 属性桥。
 
 ## 本地命令与变更范围
 

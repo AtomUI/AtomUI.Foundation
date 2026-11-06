@@ -78,6 +78,7 @@ public sealed partial class ModuleHost
     /// Creates modules synchronously. Failure cleanup can wait for asynchronous shutdown callbacks;
     /// callers with a synchronization context should prefer <see cref="CreateModulesAsync"/>.
     /// </summary>
+    [Obsolete("Synchronous CreateModules may block on asynchronous rollback; use CreateModulesAsync.")]
     public ModuleHostResult CreateModules()
     {
         return CreateModulesAsync().AsTask().GetAwaiter().GetResult();

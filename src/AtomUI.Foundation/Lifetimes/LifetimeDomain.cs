@@ -236,6 +236,22 @@ public sealed class LifetimeDomain : IAsyncDisposable
         }
     }
 
+    internal bool TryAcquire<T>(LifetimeOwner<T> owner, out LifetimeLease<T>? lease) where T : class
+    {
+        lock (Gate)
+        {
+            if (owner.CurrentState != LifetimeOwnerState.Active || owner.Suspensions != 0 || owner.Constructing)
+            {
+                lease = null;
+                return false;
+            }
+            owner.Readers++;
+            owner.RequestUsed = true;
+            lease = new LifetimeLease<T>(owner);
+            return true;
+        }
+    }
+
     public LifetimeSuspension Suspend(IEnumerable<LifetimeOwner> owners)
     {
         ArgumentNullException.ThrowIfNull(owners);

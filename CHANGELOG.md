@@ -14,6 +14,7 @@
 - 2026-11-05 完成方案 P2：Transient 改为请求 owner，最后一个 lease 归还后释放；Singleton 捕获 Transient 报告 Info 诊断 `ATOMUISVC004`；修复 O16，已准入工厂在 scope 同时退休时不再被误判失败；服务层退休索引合并为单一 ledger。
 - 2026-11-05 完成方案 P3：服务激活准入与 owner 预留原子化，服务层不再同步等待在途工厂；宿主与生命周期域共用异步上下文回调帧做重入检测；所有权表与 owner 编号改为 domain 级；推进循环索引化。行为变化：两个独立 `LifetimeDomain` 可分别接管同一实例；owner 编号只在 domain 内唯一。
 - 2026-11-05 完成方案 P4：生成器增量模型值相等化，无关编辑不再重新生成目录；生成器改为针对 Roslyn 4.8.0 编译，可被 .NET 8 SDK 装载；显示名推断不再剥除 `DataGrid` 前缀。
+- 2026-11-05 完成方案 P5：新增 `ModuleHost.TryAcquireView`、`ModuleServiceScope.TryBorrow` 与 `ModuleDiagnosticCodes.ModuleChangeRejected`；变更拒绝保留候选阶段的结构化诊断；`CreateModules()` 标记弃用；运行时开启 AOT 与裁剪分析器；发布工作流增加消费者验证、属性桥资产检查与发布前验证门禁。
 
 ## 1.0.4-local.1（本地，未公开发布）
 

@@ -2,6 +2,9 @@
     <PropertyGroup>
         <TargetFrameworks>$(AtomUIFoundationTargetFrameworks)</TargetFrameworks>
         <RootNamespace>AtomUI.Foundation</RootNamespace>
+        <!-- Run trim and AOT analyzers on every build; consumer publishes remain the acceptance evidence. -->
+        <IsAotCompatible>true</IsAotCompatible>
+        <IsTrimmable>true</IsTrimmable>
     </PropertyGroup>
 
     <ItemGroup>

@@ -31,6 +31,9 @@ jobs:
   BuildAtomUIFoundationNuget:
     name: Build AtomUI.Foundation NuGet packages
     runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -58,6 +61,27 @@ jobs:
         shell: pwsh
         run: |
           dotnet test ./tests/AtomUI.Foundation.Generator.Tests/AtomUI.Foundation.Generator.Tests.csproj --framework net10.0 --configuration $env:BUILD_CONFIGURATION --no-build
+
+      - name: Verify real ProjectReference and NuGet consumers
+        shell: pwsh
+        run: |
+          # JIT consumers and the .NET 8 SDK analyzer load run here; trim and Native AOT are
+          # covered by the Linux verification workflow required below before publishing.
+          python tests/fixtures/generator-consumer/verify.py --mode all --case all --sdk8-loader --work-dir .artifacts/release-verification
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Require successful verification for the target commit
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to_nuget == 'true' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $sha = (git rev-parse HEAD).Trim()
+          $count = gh api "repos/${{ github.repository }}/actions/workflows/verify.yml/runs?head_sha=$sha&status=success" --jq ".total_count"
+          if ($LASTEXITCODE -ne 0) { throw "Could not query verification runs for $sha." }
+          if ([int]$count -lt 1) {
+            throw "Foundation Verification has not succeeded for $sha; publishing requires it."
+          }
 
       - name: Create AtomUI.Foundation NuGet packages
         shell: pwsh
@@ -98,7 +122,7 @@ jobs:
               if ($packageId -eq "AtomUI.Foundation") {
                 $requiredAssets += "lib/net8.0/AtomUI.Foundation.dll", "lib/net10.0/AtomUI.Foundation.dll"
               } else {
-                $requiredAssets += "analyzers/dotnet/cs/AtomUI.Foundation.Generator.dll"
+                $requiredAssets += "analyzers/dotnet/cs/AtomUI.Foundation.Generator.dll", "buildTransitive/AtomUI.Foundation.Generator.props"
                 if (@($entries | Where-Object { $_.StartsWith("lib/") }).Count -ne 0) {
                   throw "Generator package contains an unexpected lib asset."
                 }

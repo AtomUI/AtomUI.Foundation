@@ -52,6 +52,8 @@ Per the approved [architecture optimization proposal](2026-11-05-foundation-arch
 - The release workflow runs the consumer verification script before packing and requires the verification workflow to have succeeded for the exact target SHA. The package asset manifest includes the generator `buildTransitive` props bridge.
 - Version status per capability is recorded in `CHANGELOG.md`; the architecture overview links to it instead of carrying per-version columns.
 
+Status (2026-11-05): the runtime project enables `IsAotCompatible` and `IsTrimmable` with zero analyzer warnings; `PublicAPI.Shipped.txt` is baselined from 1.0.3 (`0d0a361`) and RS0016/RS0017 are errors; the release workflow runs the consumer verification script (JIT consumers and the .NET 8 SDK analyzer load) before packing, checks the generator `buildTransitive` props asset, and, when publishing to nuget.org, requires a successful `verify.yml` run for the exact commit. Moving the evidence archives out of the repository is not done: it needs either release attachments or a dedicated branch, both of which require a separate decision.
+
 ## Target Consumer Qualification
 
 The 1.0.2 release includes the explicit managed lifetime path while preserving neutral descriptors. New assemblies or a mandatory DI dependency are not implied by the logical layers in [the dependency graph](dependency-graph.md).

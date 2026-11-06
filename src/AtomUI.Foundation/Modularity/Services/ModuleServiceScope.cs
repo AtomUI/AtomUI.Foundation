@@ -74,6 +74,28 @@ public sealed class ModuleServiceScope : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Borrows the service without throwing when this scope does not admit it right now: the bindings
+    /// are retiring, admission is suspended by a transition, the scope is closing, or the owner is
+    /// retiring. An unregistered service type or unfrozen bindings still throw, and factory failures
+    /// propagate. A suspension that starts concurrently with the call may still surface as Borrow's exception.
+    /// </summary>
+    public bool TryBorrow<T>([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out LifetimeLease<T>? lease) where T : class
+    {
+        lease = null;
+        ServiceRegistration? registration;
+        lock (Runtime.Gate)
+        {
+            registration = _bindings.FindRegistration(typeof(T));
+            if (registration is null || registration.Blocks != 0 || _state.Blocks != 0) return false;
+        }
+        lock (_gate)
+            if (_state.Closing || Owners.IsRetiring) return false;
+        var owner = ResolveOwner<T>(registration);
+        lock (_gate)
+            return !_state.Closing && !Owners.IsRetiring && owner.LifetimeDomain.TryAcquire(owner, out lease);
+    }
+
     public ModuleServiceScope CreateScope()
     {
         lock (_gate)

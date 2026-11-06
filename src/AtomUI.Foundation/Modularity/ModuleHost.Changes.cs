@@ -12,21 +12,45 @@ public sealed partial class ModuleHost
 
     public ModuleHostLease AcquireView(IEnumerable<ModuleId>? modules = null)
     {
+        var lease = AcquireViewCore(modules, out var rejection);
+        return lease ?? throw new InvalidOperationException(rejection);
+    }
+
+    /// <summary>
+    /// Acquires a view lease without throwing when the host does not admit readers right now: it is
+    /// not running, is shutting down, or a requested module is closing or suspended by a change.
+    /// Asking for a module that is not enabled is still an <see cref="ArgumentException"/>.
+    /// </summary>
+    public bool TryAcquireView(IEnumerable<ModuleId>? modules, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ModuleHostLease? lease)
+    {
+        lease = AcquireViewCore(modules, out _);
+        return lease is not null;
+    }
+
+    private ModuleHostLease? AcquireViewCore(IEnumerable<ModuleId>? modules, out string? rejection)
+    {
         var requested = modules?.ToHashSet();
         lock (_stateLock)
         {
             if (_phase != ModuleHostPhase.Initialized || _shutdownRequested)
-                throw new InvalidOperationException("Only a running host admits composition readers.");
+            {
+                rejection = "Only a running host admits composition readers.";
+                return null;
+            }
             var view = Current;
             var entries = requested is null ? view.Modules.ToArray() : requested.Select(id =>
                 view.Composition.ModulesById.TryGetValue(id, out var entry) ? entry :
                     throw new ArgumentException("The requested modules are not enabled.", nameof(modules))).ToArray();
             if (entries.Any(entry => entry.Closing || _suspendedModules.Contains(entry.Descriptor.Id)))
-                throw new InvalidOperationException("The requested modules do not admit new work.");
+            {
+                rejection = "The requested modules do not admit new work.";
+                return null;
+            }
             foreach (var entry in entries)
             {
                 if (entry.Readers++ == 0) entry.ReadersExited = new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
+            rejection = null;
             return new ModuleHostLease(this, view, entries);
         }
     }
@@ -73,7 +97,7 @@ public sealed partial class ModuleHost
     }
 
     private ModuleChangeResult RejectedChange(string message, Exception? exception = null) =>
-        new(ModuleChangeStatus.Rejected, Current, [new ModuleDiagnostic("ATOMUICHANGE001", message,
+        new(ModuleChangeStatus.Rejected, Current, [new ModuleDiagnostic(ModuleDiagnosticCodes.ModuleChangeRejected, message,
             stage: "ChangeModules", exceptionType: exception?.GetType().FullName)]);
 
     private async ValueTask<ModuleChangeResult> ChangeCoreAsync(ModuleChangeRequest request, CancellationToken token)
@@ -171,6 +195,8 @@ public sealed partial class ModuleHost
         catch (Exception exception)
         {
             var diagnostics = new List<ModuleDiagnostic> { FailureDiagnostic(exception, "ChangeModules") };
+            // Keep the candidate stage's own structured diagnostics (module, code, stage) after the summary.
+            if (exception is CandidateStageException stage) diagnostics.AddRange(stage.Diagnostics);
             // Only proven recovery may reopen admission. Failed recovery remains
             // isolated under this coordinator until global shutdown takes over.
             var recovered = true;
@@ -201,7 +227,14 @@ public sealed partial class ModuleHost
 
     private static void EnsureCandidateStage(ModuleHostResult result)
     {
-        if (!result.IsSuccess) throw new InvalidOperationException(string.Join("; ", result.Diagnostics.Select(item => item.Message)));
+        if (!result.IsSuccess) throw new CandidateStageException(result.Diagnostics);
+    }
+
+    /// <summary>A failed candidate stage; carries its structured diagnostics to the change result.</summary>
+    private sealed class CandidateStageException(IReadOnlyList<ModuleDiagnostic> diagnostics)
+        : InvalidOperationException(string.Join("; ", diagnostics.Select(item => item.Message)))
+    {
+        public IReadOnlyList<ModuleDiagnostic> Diagnostics { get; } = diagnostics;
     }
 
 }
