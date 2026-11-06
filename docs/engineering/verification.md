@@ -69,7 +69,7 @@
 
 增加增量缓存用例：修改不含模块声明的文件后，目录输出步骤状态为 Cached；extern alias、嵌套类型、关键字转义输出不变。显示名推断不再剥除产品前缀的行为变化有对应用例。
 
-真实 SDK/包测试验证 analyzer 装载、CompilerVisibleProperty 桥接、实际 editorconfig 和生成命名；ProjectReference 与 PackageReference 均需覆盖，并包含运行时所支持的每个 SDK 大版本至少一条 analyzer 装载用例。双程序集组合必须实际创建外部依赖注册并运行 Host，不能只检查生成字符串包含外部类型。
+真实 SDK/包测试验证 analyzer 装载、CompilerVisibleProperty 桥接、实际 editorconfig 和生成命名；ProjectReference 与 PackageReference 均需覆盖，并包含运行时所支持的每个 SDK 大版本至少一条 analyzer 装载用例。.NET 8 SDK 用例由验证脚本的 `--sdk8-loader` 选项提供：它在单独目录锁定 8.0 SDK，构建并运行 net8.0 包消费者，且先核对实际选中的 SDK 为 8.x；验证工作流启用该选项。双程序集组合必须实际创建外部依赖注册并运行 Host，不能只检查生成字符串包含外部类型。
 
 ## 独立消费者与兼容
 

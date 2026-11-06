@@ -33,6 +33,8 @@ def main():
     parser.add_argument("--mode", choices=("all", "project", "package"), default="all")
     parser.add_argument("--case", choices=("all", "default", "configured", "invalid"), default="all")
     parser.add_argument("--aot", action="store_true", help="publish the managed lifetime consumer as local Native AOT")
+    parser.add_argument("--sdk8-loader", action="store_true",
+                        help="also build and run a net8.0 package consumer with a .NET 8 SDK, proving the analyzer loads there")
     parser.add_argument("--package-version", default=VERSION,
                         help="unique candidate identity used by all packaged consumers")
     args = parser.parse_args()
@@ -57,10 +59,10 @@ def main():
     command = [sys.executable, str(args.dotnet_runner.resolve())] if args.dotnet_runner else ["dotnet"]
     transcript = work / "commands.log"
 
-    def dotnet(*arguments, expected_success=True, env=None):
+    def dotnet(*arguments, expected_success=True, env=None, cwd=ROOT):
         invocation = command + [str(argument) for argument in arguments]
         print("+ " + shlex.join(invocation), flush=True)
-        result = subprocess.run(invocation, cwd=ROOT, text=True, stdout=subprocess.PIPE,
+        result = subprocess.run(invocation, cwd=cwd, text=True, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, env=env)
         with transcript.open("a") as log:
             log.write("+ " + shlex.join(invocation) + "\n" + result.stdout + "\n")
@@ -162,6 +164,54 @@ namespace Consumer {{
                 if f"GENERATOR_CONSUMER_OK {mode} {case}" not in execution:
                     raise AssertionError("Real generated factory did not execute")
             report["cases"].append({"mode": mode, "case": case, "editorconfig": str(editorconfig.relative_to(ROOT))})
+
+    if "package" in modes and args.sdk8_loader:
+        # The repository global.json pins SDK 10; this directory pins the .NET 8 SDK so the
+        # packaged analyzer is loaded by the oldest compiler the runtime's targets support.
+        directory = work / "package-sdk8"
+        directory.mkdir()
+        (directory / "global.json").write_text('{"sdk": {"version": "8.0.100", "rollForward": "latestFeature"}}\n')
+        selected = dotnet("--version", cwd=directory).strip().splitlines()[-1]
+        if not selected.startswith("8."):
+            raise AssertionError(f"Expected a .NET 8 SDK in {directory}, got {selected}")
+        (directory / "Consumer.csproj").write_text(f"""<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <RestorePackagesPath>{escape(str(work / 'nuget-cache'))}</RestorePackagesPath>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>obj/generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AtomUI.Foundation" Version="{VERSION}" />
+    <PackageReference Include="AtomUI.Foundation.Generator" Version="{VERSION}" />
+  </ItemGroup>
+</Project>
+""")
+        (directory / "Program.cs").write_text("""using AtomUI.Modularity;
+using System;
+namespace Consumer {
+    [Module] public sealed class FeatureModule : ModuleBase { }
+    public static class Program {
+        public static void Main() {
+            var registrations = global::ModuleGeneratedCatalog.CreateRegistrations();
+            if (registrations.Count != 1 || registrations[0].Factory() is not FeatureModule)
+                throw new InvalidOperationException("Generated registration/factory contract failed");
+            Console.WriteLine("GENERATOR_CONSUMER_OK package sdk8");
+        }
+    }
+}
+""")
+        output = dotnet("build", directory / "Consumer.csproj", "-c", "Debug", cwd=directory)
+        if "CS8032" in output or "AD0001" in output:
+            raise AssertionError("The .NET 8 SDK compiler could not load the generator")
+        execution = dotnet("run", "--project", directory / "Consumer.csproj", "-c", "Debug", "--no-build", cwd=directory)
+        if "GENERATOR_CONSUMER_OK package sdk8" not in execution:
+            raise AssertionError("The generator did not produce a working catalog under the .NET 8 SDK")
+        report["cases"].append({"mode": "package", "case": "sdk8", "sdk": selected})
 
     if "package" in modes:
         generator_package = packages / f"AtomUI.Foundation.Generator.{VERSION}.nupkg"

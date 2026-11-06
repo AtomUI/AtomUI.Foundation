@@ -16,7 +16,7 @@
 
 同一模块符号只发现一次。partial 的其他带特性声明不能因读取到合并后的 ModuleAttribute 而再次登记。输入顺序变化不改变稳定目录顺序或诊断含义。
 
-按 2026-11-05 批准的[架构优化方案](2026-11-05-foundation-architecture-optimization-proposal.md)，增量管线的模型只包含字符串与原始值并具备值相等，不持有 `ISymbol` 或 `Location` 对象；位置以可比较的文件、行列信息保存。程序集到引用别名的映射由编译级 provider 一次计算后合并，不在每个依赖上遍历全部引用。未涉及模块声明的编辑应使目录输出步骤命中缓存。
+按 2026-11-05 批准的[架构优化方案](2026-11-05-foundation-architecture-optimization-proposal.md)，增量管线的模型只包含字符串与原始值并具备值相等，不持有 `ISymbol` 或 `Location` 对象；位置以语法树引用加文本区间保存并按值比较：未改动文件在编译之间保持同一语法树实例，因此相等；报告时仍是真正的源码位置，`#pragma` 抑制继续有效。符号身份以包含程序集身份加文档注释 ID 表示。程序集到引用别名的映射由编译级 provider 一次计算后合并，不在每个依赖上遍历全部引用。未涉及模块声明的编辑应使目录输出步骤命中缓存。
 
 显示名推断只做两件事：去掉 `Module` 后缀，按驼峰分词。不剥除任何产品特定前缀；需要其他显示名的模块使用 `DisplayName`。此前对 `DataGrid` 前缀的剥除属于行为变化，在 CHANGELOG 标注。
 
@@ -74,6 +74,6 @@ ModuleId 和 ModulePhaseId 的 FromSerializedValue 警告依据实际目标方�
 
 ## 编译和打包边界
 
-Generator 保持 netstandard2.0，仅作为 analyzer；运行时不装载其程序集执行服务。Generator 引用的 Roslyn 版本取能被运行时所支持的全部 SDK 共同加载的最低版本；若某项能力确需更高版本，在本节与 README 写明生成器要求的最低 SDK，并在验证矩阵用对应 SDK 的消费用例证明。当前生成语法面向支持集合表达式等语法的 C# 12 或更高消费者，不能因 analyzer 目标为 netstandard2.0 就声称生成源支持旧 C#。
+Generator 保持 netstandard2.0，仅作为 analyzer；运行时不装载其程序集执行服务。Generator 引用的 Roslyn 版本取能被运行时所支持的全部 SDK 共同加载的最低版本；若某项能力确需更高版本，在本节与 README 写明生成器要求的最低 SDK，并在验证矩阵用对应 SDK 的消费用例证明。当前生成器针对 Roslyn 4.8.0（.NET 8 SDK 自带版本）编译，测试项目仍以中央版本驱动它；所用 API（`IsFileLocal`、`IsRequired`、`ResolveForwardedType` 等）均在 4.8 中可用。当前生成语法面向支持集合表达式等语法的 C# 12 或更高消费者，不能因 analyzer 目标为 netstandard2.0 就声称生成源支持旧 C#。
 
 源生成不自动证明无反射、trim 安全或 Native AOT 可运行。包加载、属性桥接、生成源编译与实际消费程序运行分别取得证据。工程细则见[生成器工程规则](../engineering/source-generator-guidelines.md)。

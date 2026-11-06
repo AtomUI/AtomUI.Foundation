@@ -60,7 +60,7 @@ jobs:
         run: dotnet test tests/AtomUI.Foundation.Generator.Tests/AtomUI.Foundation.Generator.Tests.csproj --framework net10.0 --configuration Release --no-build
 
       - name: Verify real ProjectReference and NuGet consumers
-        run: python3 tests/fixtures/generator-consumer/verify.py --mode all --case all --aot --work-dir .artifacts/foundation-verification
+        run: python3 tests/fixtures/generator-consumer/verify.py --mode all --case all --aot --sdk8-loader --work-dir .artifacts/foundation-verification
 
       - name: Check whitespace
         env:
