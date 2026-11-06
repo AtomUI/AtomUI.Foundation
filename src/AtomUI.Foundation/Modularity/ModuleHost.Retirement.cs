@@ -4,22 +4,20 @@ namespace AtomUI.Modularity;
 
 public sealed partial class ModuleHost
 {
-    private sealed record RetirementResources(IReadOnlyList<ModuleEntry> Modules, object? Services, ModuleChangePreparation? Domain);
-
-    private ModuleChangeRetirement StartTrackedCleanup(Func<ModuleChangeRetirement, Task<ModuleHostResult>> cleanup, object resources)
+    private ModuleChangeRetirement StartTrackedCleanup(ModuleRetirementPlan plan)
     {
         var completion = NewCompletion();
-        var retirement = new ModuleChangeRetirement(completion.Task, resources);
+        var retirement = new ModuleChangeRetirement(completion.Task, plan.Resources);
         lock (_stateLock) _retirements.Add(retirement);
-        _ = CompleteTrackedCleanupAsync(cleanup, completion, retirement);
+        _ = CompleteTrackedCleanupAsync(plan, completion, retirement);
         return retirement;
     }
 
-    private async Task CompleteTrackedCleanupAsync(Func<ModuleChangeRetirement, Task<ModuleHostResult>> cleanup, TaskCompletionSource<ModuleHostResult> completion,
+    private async Task CompleteTrackedCleanupAsync(ModuleRetirementPlan plan, TaskCompletionSource<ModuleHostResult> completion,
         ModuleChangeRetirement retirement)
     {
         ModuleHostResult result;
-        try { result = await cleanup(retirement).ConfigureAwait(false); }
+        try { result = CreateResult((await RunRetirementAsync(plan, retirement).ConfigureAwait(false)).Diagnostics); }
         catch (Exception exception) { result = CreateResult([FailureDiagnostic(exception, "Retirement")]); }
         if (result.IsSuccess)
         {
@@ -29,53 +27,26 @@ public sealed partial class ModuleHost
         completion.TrySetResult(result);
     }
 
-    private async Task<ModuleHostResult> RetirePreviousAsync(ModuleEntry[] removed, ModuleServiceRegistry registry,
-        ModuleServiceTransition? services, ModuleChangePreparation? preparation, ModuleChangeRetirement receipt)
+    /// <summary>
+    /// The single retirement scheduler shared by committed changes, withdrawn candidates and final
+    /// shutdown. Both Stop paths finish before the drain starts; domain cleanup may return a module
+    /// lease or wait for a module/service ticket, so it starts before awaiting any module's reader drain.
+    /// </summary>
+    private async Task<ModuleHostResult> RunRetirementAsync(ModuleRetirementPlan plan, ModuleChangeRetirement? receipt)
     {
-        var diagnostics = new List<ModuleDiagnostic>();
-        try { if (services is not null) InvokeCallback(() => { services.Stop(); return true; }); }
-        catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "StopPreviousServices")); }
-        receipt.ManagedRetirement = services?.Retirement;
-        try { if (preparation is not null) InvokeCallback(() => { preparation.StopPrevious(); return true; }); }
-        catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "StopPreviousDomain")); }
-        var result = await DrainRetirementAsync(removed, registry,
-            () => CompletePreviousDomainAsync(preparation),
-            () => CompletePreviousServicesAsync(services), receipt, preparation).ConfigureAwait(false);
-        diagnostics.AddRange(result.Diagnostics);
-        return CreateResult(diagnostics);
-    }
-
-    private async Task<ModuleHostResult> AbortCandidateAsync(List<ModuleEntry> created, ModuleComposition candidate,
-        ModuleChangePreparation? preparation, ModuleChangeRetirement receipt)
-    {
-        var diagnostics = new List<ModuleDiagnostic>();
-        try { if (candidate.ManagedServices is not null) InvokeCallback(() => { candidate.ManagedServices.Stop(); return true; }); }
-        catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "StopCandidateServices")); }
-        receipt.ManagedRetirement = candidate.ManagedServices?.Retirement;
-        var result = await DrainRetirementAsync(created, candidate.Registry,
-            () => AbortDomainAsync(preparation),
-            () => CompleteCandidateServicesAsync(candidate.ManagedServices), receipt, preparation).ConfigureAwait(false);
-        diagnostics.AddRange(result.Diagnostics);
-        return CreateResult(diagnostics);
-    }
-
-    private async Task<ModuleHostResult> DrainRetirementAsync(IEnumerable<ModuleEntry> entries, ModuleServiceRegistry registry,
-        Func<Task<ModuleHostResult>> completeDomain, Func<Task<ModuleHostResult>> completeServices,
-        ModuleChangeRetirement receipt, ModuleChangePreparation? preparation)
-    {
-        // Both Stop paths have finished before this scheduler is entered. Domain
-        // cleanup may return a module lease, or wait for a module/service ticket;
-        // it must be started before awaiting any module's final reader drain.
-        var modules = entries.ToArray();
-        var domainCompletion = completeDomain();
-        var moduleCompletion = CleanupEntriesAsync(modules, registry);
-        var serviceCompletion = CompleteServicesAfterModulesAsync(moduleCompletion, completeServices);
+        var diagnostics = plan.Stop();
+        if (receipt is not null) receipt.ManagedRetirement = plan.ManagedRetirement();
+        diagnostics.AddRange(plan.StopDomain());
+        var domainCompletion = plan.CompleteDomain();
+        var moduleCompletion = CleanupEntriesAsync(plan.Modules, plan.Registry);
+        var serviceCompletion = CompleteServicesAfterModulesAsync(moduleCompletion, plan.CompleteServices);
         var results = await Task.WhenAll(domainCompletion, moduleCompletion, serviceCompletion).ConfigureAwait(false);
         // Keep actual failed modules and their Required dependencies, rather than
         // a whole historical composition and all of its registration factories.
-        receipt.RetainResources(new RetirementResources(FailedModuleClosure(modules),
-            results[2].IsSuccess ? null : receipt.ManagedRetirement, results[0].IsSuccess ? null : preparation));
-        return new ModuleHostResult(results.SelectMany(result => result.Diagnostics));
+        receipt?.RetainResources(new ModuleRetirementResources(FailedModuleClosure(plan.Modules), null, null,
+            results[2].IsSuccess ? null : receipt.ManagedRetirement, results[0].IsSuccess ? null : plan.Domain));
+        diagnostics.AddRange(results.SelectMany(result => result.Diagnostics));
+        return new ModuleHostResult(diagnostics);
     }
 
     private static IReadOnlyList<ModuleEntry> FailedModuleClosure(ModuleEntry[] modules)
@@ -98,6 +69,61 @@ public sealed partial class ModuleHost
     {
         await moduleCompletion.ConfigureAwait(false);
         return await completeServices().ConfigureAwait(false);
+    }
+
+    /// <summary>Plan that retires the current generation, including its published domain state, at final shutdown.</summary>
+    private ModuleRetirementPlan CurrentRetirementPlan()
+    {
+        var current = Current;
+        var publisher = current.Publisher;
+        return new ModuleRetirementPlan(current.Composition.Modules.ToArray(), current.Services,
+            Stop: () =>
+            {
+                var diagnostics = new List<ModuleDiagnostic>();
+                try { InvokeCallback(() => { _options.Lifetime?.Stop(); return true; }); }
+                catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "Stop")); }
+
+                RecoveryFailure? recovery;
+                lock (_stateLock) { recovery = _recoveryFailure; _recoveryFailure = null; }
+                if (recovery is not null)
+                {
+                    diagnostics.AddRange(recovery.Diagnostics);
+                    // Global Stop has closed runtime admission. It is now safe to return
+                    // the recoverable suspension without admitting new service work.
+                    recovery.Services?.Dispose();
+                }
+                return diagnostics;
+            },
+            StopDomain: () =>
+            {
+                var diagnostics = new List<ModuleDiagnostic>();
+                try { if (publisher is not null) InvokeCallback(() => { publisher.StopCurrent(); return true; }); }
+                catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "StopCurrentDomain")); }
+                return diagnostics;
+            },
+            ManagedRetirement: static () => null,
+            CompleteDomain: () => CompleteCurrentDomainAsync(publisher),
+            CompleteServices: CompleteLifetimeShutdownAsync,
+            Domain: publisher,
+            Resources: null);
+    }
+
+    private async Task<ModuleHostResult> CompleteLifetimeShutdownAsync()
+    {
+        if (_options.Lifetime is null) return ModuleHostResult.Success;
+        try
+        {
+            var result = await InvokeCallbackAsync(() => _options.Lifetime.CompleteShutdownAsync()).ConfigureAwait(false);
+            return new ModuleHostResult(result.Diagnostics);
+        }
+        catch (Exception exception) { return new ModuleHostResult([FailureDiagnostic(exception, "CompleteShutdown")]); }
+    }
+
+    private async Task<ModuleHostResult> CompleteCurrentDomainAsync(ModuleChangePreparation? publisher)
+    {
+        if (publisher is null) return ModuleHostResult.Success;
+        try { return await InvokeCallbackAsync(() => publisher.CompleteCurrentAsync()).ConfigureAwait(false); }
+        catch (Exception exception) { return new ModuleHostResult([FailureDiagnostic(exception, "RetireCurrentDomain")]); }
     }
 
     private async Task<ModuleHostResult> CompleteCandidateServicesAsync(ModuleServiceBindings? services)

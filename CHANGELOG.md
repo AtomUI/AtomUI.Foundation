@@ -10,6 +10,7 @@
   - 实例重复接管检查从进程级改为 `LifetimeDomain` 级。
   - `CreateModules()` 标记 `[Obsolete]`；新增 `TryAcquireView`、`TryBorrow`、`PrepareTransitionAsync`。
 - 2026-11-05 完成方案 P0：新增 O02、O05、O07、O09 与新发现 O16 的红色用例（`Category=P0Red`），新增并发回归骨架，引入以 1.0.3 为 Shipped 基线的 PublicAPI 分析器。当前公开 API 与 1.0.3 一致。
+- 2026-11-05 完成方案 P1：启动、重配与最终关闭统一为同一组合变更事务与退休调度器；新增 `ModuleChangePreparation.StopCurrent()` 与 `CompleteCurrentAsync()`，最终关闭可退休当前代领域状态并归还其持有的模块 lease（审计 R01）；`LifetimeRetirement` 拆为内部 batch 与公开回执。Native AOT 证据待 SDK 更新后补跑。
 
 ## 1.0.4-local.1（本地，未公开发布）
 

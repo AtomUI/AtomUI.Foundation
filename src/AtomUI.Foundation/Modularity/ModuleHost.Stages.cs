@@ -45,17 +45,8 @@ public sealed partial class ModuleHost
         var phaseResult = RequirePhase(ModuleHostPhase.Resolved, "CreateModules");
         if (!phaseResult.IsSuccess) { return ValueTask.FromResult(phaseResult); }
 
-        foreach (var descriptor in _resolvedModules!)
-        {
-            var admission = CheckAdmission("CreateModules");
-            if (!admission.IsSuccess) { return ValueTask.FromResult(admission); }
-            cancellationToken.ThrowIfCancellationRequested();
-            var registration = _registrations.First(item => item.Descriptor.Id == descriptor.Id);
-            // Transfer ownership before checking cancellation or advancing to another factory.
-            var entry = CreateModuleEntry(descriptor, registration, cancellationToken);
-            lock (_stateLock) { Current.Composition.AddModule(entry); }
-            cancellationToken.ThrowIfCancellationRequested();
-        }
+        var created = _initial!.CreateEntries("CreateModules", cancellationToken);
+        if (!created.IsSuccess) { return ValueTask.FromResult(created); }
 
         cancellationToken.ThrowIfCancellationRequested();
         return ValueTask.FromResult(CompletePhase("CreateModules", ModuleHostPhase.ModulesCreated));
@@ -71,7 +62,7 @@ public sealed partial class ModuleHost
         var required = RequirePhase(expectedPhase, stage);
         if (!required.IsSuccess) { return required; }
         cancellationToken.ThrowIfCancellationRequested();
-        var result = await ConfigureEntriesAsync(Current.Composition, _enabledModules, stage, nextPhase, action, cancellationToken).ConfigureAwait(false);
+        var result = await _initial!.ConfigureAsync(stage, nextPhase, action, cancellationToken).ConfigureAwait(false);
         return result.IsSuccess ? CompletePhase(stage, nextPhase) : result;
     }
 
@@ -117,10 +108,7 @@ public sealed partial class ModuleHost
     {
         var required = RequirePhase(ModuleHostPhase.PostConfiguredServices, "FreezeServices");
         if (!required.IsSuccess) { return required; }
-        try { InvokeCallback(() => { _options.Lifetime?.Freeze(); return true; }); }
-        catch (Exception exception) { throw new ModuleLifecycleExecutionException(null, "FreezeServices", exception); }
-        _services.Freeze();
-        foreach (var entry in _enabledModules) { entry.Phase = ModuleHostPhase.ServicesFrozen; }
+        _initial!.Freeze();
         return CompletePhase("FreezeServices", ModuleHostPhase.ServicesFrozen);
     }
 
@@ -129,7 +117,7 @@ public sealed partial class ModuleHost
         var required = RequirePhase(ModuleHostPhase.ServicesFrozen, "Initialize");
         if (!required.IsSuccess) { return required; }
         cancellationToken.ThrowIfCancellationRequested();
-        var result = await InitializeEntriesAsync(Current.Composition, _enabledModules, cancellationToken).ConfigureAwait(false);
+        var result = await _initial!.InitializeAsync(cancellationToken).ConfigureAwait(false);
         return result.IsSuccess ? CompletePhase("Initialize", ModuleHostPhase.Initialized) : result;
     }
 
@@ -194,8 +182,13 @@ public sealed partial class ModuleHost
             if (!_shutdownRequested)
             {
                 _phase = phase;
-                if (phase == ModuleHostPhase.Initialized && Current.Generation == 0)
-                    Volatile.Write(ref _current, new ModuleHostView(this, 1, Current.Composition));
+                // Startup commits like any other change: the initial transaction publishes the next
+                // generation of its empty baseline, then releases its candidate bookkeeping.
+                if (phase == ModuleHostPhase.Initialized && _initial is { } initial)
+                {
+                    Volatile.Write(ref _current, initial.Publish(null, null));
+                    _initial = null;
+                }
                 return ModuleHostResult.Success;
             }
         }

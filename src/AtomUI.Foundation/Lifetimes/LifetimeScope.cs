@@ -8,7 +8,7 @@ public sealed class LifetimeScope : IAsyncDisposable
 
     internal readonly List<LifetimeOwner> Owners = [];
     internal bool Retiring;
-    internal LifetimeRetirement? Retirement;
+    internal LifetimeRetirementBatch? Retirement;
 
     public LifetimeDomain LifetimeDomain { get; }
     public bool IsRetiring { get { lock (LifetimeDomain.Gate) return Retiring; } }

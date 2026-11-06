@@ -150,34 +150,10 @@ public sealed partial class ModuleHost
 
     private async Task CompleteCleanupAsync(TaskCompletionSource<ModuleHostResult> completion)
     {
+        // Final shutdown retires the current generation through the same scheduler as a committed
+        // change: Stop, then domain completion alongside the module drain, then managed services.
         var diagnostics = new List<ModuleDiagnostic>();
-        try
-        {
-            InvokeCallback(() => { _options.Lifetime?.Stop(); return true; });
-        }
-        catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "Stop")); }
-
-        RecoveryFailure? recovery;
-        lock (_stateLock) { recovery = _recoveryFailure; _recoveryFailure = null; }
-        if (recovery is not null)
-        {
-            diagnostics.AddRange(recovery.Diagnostics);
-            // Global Stop has closed runtime admission. It is now safe to return
-            // the recoverable suspension without admitting new service work.
-            recovery.Services?.Dispose();
-        }
-
-        diagnostics.AddRange((await CleanupEntriesAsync(_enabledModules, Services).ConfigureAwait(false)).Diagnostics);
-
-        if (_options.Lifetime is not null)
-        {
-            try
-            {
-                var result = await InvokeCallbackAsync(() => _options.Lifetime.CompleteShutdownAsync()).ConfigureAwait(false);
-                diagnostics.AddRange(result.Diagnostics);
-            }
-            catch (Exception exception) { diagnostics.Add(FailureDiagnostic(exception, "CompleteShutdown")); }
-        }
+        diagnostics.AddRange((await RunRetirementAsync(CurrentRetirementPlan(), receipt: null).ConfigureAwait(false)).Diagnostics);
 
         Task<ModuleHostResult>[] retired;
         lock (_stateLock) retired = _retirements.Select(retirement => retirement.FinalCompletion).ToArray();

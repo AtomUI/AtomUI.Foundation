@@ -118,7 +118,7 @@ Stop 屏障之后，立即启动领域完成和模块读者排空，让两者共
 
 最终 Host 关闭覆盖当前集合、已交接的未提交候选，以及所有未完成或清理失败保留的旧资源；不能只关闭最新代。重复等待复用原票据和失败记录，不重试已经尝试的 Release。
 
-最终关闭通过同一事务把当前代作为旧影响集退休：Host 保存发布当前 `State` 的准备对象，关闭时在模块读者排空之前启动 `StopPrevious` 与 `CompletePreviousAsync`，与模块回调及服务 Release 并行推进，和本分册“提交后的退休与失败”对旧代的要求一致。没有参与方时领域完成立即成功。此前最终关闭对当前代领域状态没有退休协议，是审计 R01 循环接线风险的根因；本修订以协议而非自动 Dispose 关闭该缺口。
+最终关闭经同一退休调度器把当前代作为旧影响集退休：Host 在视图中保存发布当前 `State` 的准备对象，关闭时在 lifetime Stop 之后调用其 `StopCurrent()`，再让 `CompleteCurrentAsync()` 与模块读者排空同时启动，受管服务 Release 仍等待模块回调，这与本分册“提交后的退休与失败”对旧代的要求一致。`StopPrevious` 与 `CompletePreviousAsync` 退休的是准备对象的前任状态，不能用来退休它自己发布的状态；因此当前状态由 `ModuleChangePreparation` 新增的可选成员 `StopCurrent()` 与 `CompleteCurrentAsync()` 退休，默认实现为空操作。没有参与方或未覆写时领域完成立即成功。此前最终关闭对当前代领域状态没有退休协议，是审计 R01 循环接线风险的根因；本修订以协议而非自动 Dispose 关闭该缺口。
 
 ## 验收与证据
 
@@ -132,7 +132,7 @@ Stop 屏障之后，立即启动领域完成和模块读者排空，让两者共
 
 `ChangeAsync(ModuleChangeRequest, CancellationToken)` 返回 `ModuleChangeResult`。请求捕获 `ModuleHostView` 基线、目标 registrations/options、显式 disabled/replaced 模块身份、级联选择和可选 `IModuleChangeParticipant`。状态使用 `ModuleChangeStatus`，退休通过 `ModuleChangeRetirement.FinalCompletion` 观察；其 `ManagedRetirement` 在服务 Stop 建立后暴露真实 `LifetimeRetirement`，可以从首次及最终快照核对 owner、reader、状态和失败，未接入服务时为空。提交回执与清理结果分离。
 
-领域参与方的 `ConfigureAsync(ModuleChangeContext, CancellationToken)` 只配置候选，`PrepareAsync(ModuleChangeContext, CancellationToken)` 在候选服务冻结后返回 `ModuleChangePreparation`。准备对象保存待发布 `State` 和领域实际使用关系对应的 `AffectedModules`，通过 `SuspendAsync`、`ResumeAsync`、`AbortAsync`、`StopPrevious` 和 `CompletePreviousAsync` 参与可恢复暂停、撤销和旧领域退休。Foundation 将领域影响身份与模块、受管服务影响集合并，再统一关闭宿主准入；领域工作/结果仍由原权威提供真实退出证据。所有这些回调都在提交锁外；提交只接管预先封存的 State。初始集合仍由原装配合同建立，新协议不暗中重放原参与方。
+领域参与方的 `ConfigureAsync(ModuleChangeContext, CancellationToken)` 只配置候选，`PrepareAsync(ModuleChangeContext, CancellationToken)` 在候选服务冻结后返回 `ModuleChangePreparation`。准备对象保存待发布 `State` 和领域实际使用关系对应的 `AffectedModules`，通过 `SuspendAsync`、`ResumeAsync`、`AbortAsync`、`StopPrevious` 和 `CompletePreviousAsync` 参与可恢复暂停、撤销和旧领域退休；可选的 `StopCurrent()` 与 `CompleteCurrentAsync()` 在最终关闭时退休它发布且仍为当前的状态。Foundation 将领域影响身份与模块、受管服务影响集合并，再统一关闭宿主准入；领域工作/结果仍由原权威提供真实退出证据。所有这些回调都在提交锁外；提交只接管预先封存的 State。初始集合仍由原装配合同建立，新协议不暗中重放原参与方。
 
 `IModuleHostReconfigurationLifetime.ServiceRuntime` 让自定义 Host lifetime 适配器公开它实际拥有的 `ModuleServiceRuntime`；运行时本身实现此接口。未适配的自定义 lifetime 不能被假定支持局部变更，应明确拒绝；不通过另建 Runtime 绕过。
 

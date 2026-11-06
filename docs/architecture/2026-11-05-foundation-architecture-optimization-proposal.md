@@ -60,7 +60,7 @@
 
 - 新增内部类型 `ModuleChangeTransaction`，显式状态为 Validated → Created → Configured → Prepared → Suspended → Published → Retiring → Completed，每个状态只有一种合法失败出口。`ChangeCoreAsync` 退化为对该类型的驱动，`RetirementResources` 字段改为强类型。
 - 初始启动通过同一事务推进 `created` 全集，保留 `ModuleHostPhase` 的逐阶段可观察值与手动阶段 API；手动 Resolve/Create/配置入口映射为事务的分步推进，不重跑工厂。`CompletePhase` 中 Generation 0→1 的特判随之消失，初始视图即 Generation 1 的提交结果。
-- 最终关闭通过同一事务把当前代退休。`ModuleHostView.State` 取得与旧代相同的 StopPrevious/CompletePrevious 协议：Host 保存发布该状态的 participant 准备对象，关闭时在模块 drain 之前启动领域完成，与模块回调及服务 Release 并行推进。这直接关闭审计 R01 的循环接线风险，不要求 Host 自动 Dispose 任意 State。
+- 最终关闭通过同一退休调度器把当前代退休。Host 在视图中保存发布 `ModuleHostView.State` 的准备对象；关闭时调用其新增可选成员 `StopCurrent()`，再让 `CompleteCurrentAsync()` 与模块读者排空同时启动，与模块回调及服务 Release 并行推进。这直接关闭审计 R01 的循环接线风险，不要求 Host 自动 Dispose 任意 State。（2026-11-05 实施修正：批准稿原写作沿用 `StopPrevious`/`CompletePreviousAsync`，但这两个成员退休的是准备对象的前任状态，照字面实现会在关闭时重复退休前任，故改为新增成员。）
 - 没有 participant 的中立消费者行为不变：空领域完成立即成功。
 - 全局失败回滚与候选失败清理合并为"退休一个未发布候选"，初始集合失败时退休的是尚未发布的 Generation 1 候选。
 
@@ -144,12 +144,20 @@ P0 已于 2026-11-05 在工作区完成（未提交，1.0.4 修复的提交前�
 - O16 归入 P2，与 Transient 请求 owner 一起处理：已准入构造期间的依赖解析不得因所在 scope 开始退休而失败，退休应等待该构造完成并按正常屏障释放。
 - 公开 API 基线：`src/AtomUI.Foundation/PublicAPI.Shipped.txt` 由 1.0.3 源码 `0d0a361` 经 PublicApiAnalyzers 5.6.0 生成，共 422 个符号；当前工作区相对 1.0.3 无公开 API 变化，Unshipped 为空。RS0016 与 RS0017 提升为错误。
 
+P1 已于 2026-11-05 在工作区完成（未提交）：
+
+- 新增内部 `ModuleChangeTransaction` 与 `ModuleChangeStage`。启动是从 Generation 0 空基线出发的初始事务，手动阶段 API 是其分步推进，首次 Initialize 由事务发布 Generation 1；重配由同一事务驱动；Generation 0 到 1 的特判已移除。
+- 旧代退休、候选撤销与最终关闭共用一个退休调度器，三者只在停止与完成委托上不同，诊断阶段名与观察者报告方式逐字保留。退休资源改为强类型 `ModuleRetirementResources`。
+- `ModuleChangePreparation` 新增 `StopCurrent()` 与 `CompleteCurrentAsync()`，已登记到 `PublicAPI.Unshipped.txt`。
+- `LifetimeRetirement` 拆为内部 `LifetimeRetirementBatch` 与公开回执，公开签名不变。
+- 验证：Release 双目标构建 0 警告；运行时非红色用例 206 个连续 6 轮通过，新增 4 个事务统一与 R01 验收用例；生成器 48 个通过；红色集合与 P1 前一致。真实消费者的生成器四种配置、net8/net10 JIT 与 net10 trim 通过；Native AOT 在还原阶段被 NuGet 漏洞审计拦截（`Microsoft.DotNet.ILCompiler` 10.0.8，GHSA-p3jp-9v83-76w9），需更新本机 SDK 后补跑，未取得本轮 AOT 证据。
+
 ## 7. 验收矩阵
 
 | 场景 | 核心断言 |
 | --- | --- |
 | 启动即变更 | 空基线到 S 的提交结果 Generation 为 1；手动阶段 API 与一次性 Initialize 得到相同实例与工厂次数；预取消不推进阶段 |
-| 关闭即变更 | 当前代 State 收到 StopPrevious 与 CompletePrevious；持有模块 lease 的领域状态在 Complete 中归还后关闭完成；无 participant 时结果与现状一致 |
+| 关闭即变更 | 当前状态的发布者收到 StopCurrent 与 CompleteCurrentAsync；持有模块 lease 的领域状态在后者中归还后关闭完成；被取代的发布者不再收到；无 participant 时结果与现状一致 |
 | Transient 释放 | Root 与子 scope 借用 Transient，最后 lease 归还后 Release 恰一次；被 Singleton 捕获的 Transient 随 Singleton 释放；并发多次借用无重复释放 |
 | 簿记 ledger | 128 次成功候选退休后 ledger 为空；失败与 Pending 票据保留到最终关闭；重复关闭不重试 Release |
 | 锁与重入 | Stop 回调跨 await 后再调用 Stop 被正确识别为重入；工厂内阻塞等待不再可能形成构造函数自等待 |
@@ -164,7 +172,7 @@ P0 已于 2026-11-05 在工作区完成（未提交，1.0.4 修复的提交前�
 
 | 分册 | 修订内容 |
 | --- | --- |
-| [模块宿主](modularity.md) | "阶段与操作协调"增加"启动与关闭均为组合变更事务的特例"；"关闭合同"增加当前代领域状态的 StopPrevious/CompletePrevious 顺序；"同步入口与诊断"标注 `CreateModules` 弃用及 `TryAcquireView` |
+| [模块宿主](modularity.md) | "阶段与操作协调"增加"启动与关闭均为组合变更事务的特例"；"关闭合同"增加当前代领域状态的 StopCurrent/CompleteCurrentAsync 顺序；"同步入口与诊断"标注 `CreateModules` 弃用及 `TryAcquireView` |
 | [模块动态重配事务](module-reconfiguration.md) | "职责与权威"写明事务状态机；"取消、并发与最终关闭"把最终关闭纳入同一事务；"实施用公开协议"追加 `PrepareTransitionAsync` |
 | [服务登记](service-registration.md) | "显式受管模式"表中 Transient 行改为请求 owner 语义；"scope 与退休索引的保留责任"改为 ledger 表述；增加 `TryBorrow` |
 | [受管生命周期](managed-lifetimes.md) | "角色与关系"增加请求 owner；"退休调度与两个屏障"写明 batch 与回执的分离；"Host 与外部容器接入"更新跨 domain 接管代价；"必须验证的性质"追加并发与复杂度性质 |

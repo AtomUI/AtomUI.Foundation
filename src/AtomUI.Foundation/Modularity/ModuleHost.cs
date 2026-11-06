@@ -9,6 +9,8 @@ public sealed partial class ModuleHost
     private readonly ConditionalWeakTable<IModule, ModuleEntry> _moduleOwnership = new();
     private readonly ModuleHostOptions _options;
     private ModuleHostView _current;
+    /// <summary>The startup transaction from the empty generation-0 view; cleared once it publishes.</summary>
+    private ModuleChangeTransaction? _initial;
     private IReadOnlyList<ModuleRegistration> _registrations => Current.Composition.Registrations;
     private List<ModuleEntry> _enabledModules => Current.Composition.Modules;
     private ModuleServiceCollection _services => Current.Composition.Services;
@@ -36,6 +38,7 @@ public sealed partial class ModuleHost
             _current.Composition.ManagedServices = lifetime.ServiceRuntime.InitialBindings;
             lifetime.ServiceRuntime.AttachHost(this, () => Current.ManagedServices!);
         }
+        _initial = new ModuleChangeTransaction(this, _current, _current.Composition, initial: true);
     }
 
     public ModuleHostView Current => Volatile.Read(ref _current);

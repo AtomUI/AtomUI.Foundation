@@ -136,75 +136,35 @@ public sealed partial class ModuleHost
         { Resolved = graph.Modules };
         if (baseline.ManagedServices is { } bindings)
             candidate.ManagedServices = bindings.Runtime.CreateCandidate(bindings, removedIds);
-        var created = new List<ModuleEntry>();
-        ModuleChangePreparation? preparation = null;
-        ModuleServiceTransition? services = null;
-        var suspended = false;
+        var retained = baseline.Modules.Where(entry => !removedIds.Contains(entry.Descriptor.Id)).ToDictionary(entry => entry.Descriptor.Id);
+        var transaction = new ModuleChangeTransaction(this, baseline, candidate, initial: false, retained, removed, request.Participant);
         try
         {
-            var candidatesById = candidate.Registrations.ToDictionary(registration => registration.Descriptor.Id);
-            var retained = baseline.Modules.Where(entry => !removedIds.Contains(entry.Descriptor.Id)).ToDictionary(entry => entry.Descriptor.Id);
-            foreach (var descriptor in graph.Modules)
-            {
-                token.ThrowIfCancellationRequested();
-                var admission = CheckAdmission("ChangeModules");
-                if (!admission.IsSuccess) throw new InvalidOperationException("Host shutdown was requested.");
-                if (!retained.TryGetValue(descriptor.Id, out var entry))
-                {
-                    entry = CreateModuleEntry(descriptor, candidatesById[descriptor.Id], token);
-                    created.Add(entry);
-                }
-                candidate.AddModule(entry);
-            }
-            EnsureCandidateStage(await ConfigureEntriesAsync(candidate, created, "PreConfigureServices", ModuleHostPhase.PreConfiguredServices,
+            EnsureCandidateStage(transaction.CreateEntries("ChangeModules", token));
+            EnsureCandidateStage(await transaction.ConfigureAsync("PreConfigureServices", ModuleHostPhase.PreConfiguredServices,
                 static (module, context, cancellation) => module.PreConfigureServicesAsync(context, cancellation), token).ConfigureAwait(false));
-            EnsureCandidateStage(await ConfigureEntriesAsync(candidate, created, "ConfigureServices", ModuleHostPhase.ConfiguredServices,
+            EnsureCandidateStage(await transaction.ConfigureAsync("ConfigureServices", ModuleHostPhase.ConfiguredServices,
                 static (module, context, cancellation) => module.ConfigureServicesAsync(context, cancellation), token).ConfigureAwait(false));
-            EnsureCandidateStage(await ConfigureEntriesAsync(candidate, created, "PostConfigureServices", ModuleHostPhase.PostConfiguredServices,
+            EnsureCandidateStage(await transaction.ConfigureAsync("PostConfigureServices", ModuleHostPhase.PostConfiguredServices,
                 static (module, context, cancellation) => module.PostConfigureServicesAsync(context, cancellation), token).ConfigureAwait(false));
-            var context = new ModuleChangeContext(baseline, candidate);
-            if (request.Participant is not null)
-                await InvokeCallbackAsync(async () => { await request.Participant.ConfigureAsync(context, token).ConfigureAwait(false); return true; }).ConfigureAwait(false);
-            candidate.ManagedServices?.Freeze();
-            candidate.Services.Freeze();
-            foreach (var entry in created) entry.Phase = ModuleHostPhase.ServicesFrozen;
-            if (request.Participant is not null)
-                preparation = await InvokeCallbackAsync(() => request.Participant.PrepareAsync(context, token)).ConfigureAwait(false)
-                    ?? throw new InvalidOperationException("The domain participant returned no preparation.");
-            EnsureCandidateStage(await InitializeEntriesAsync(candidate, created, token).ConfigureAwait(false));
+            await transaction.ConfigureDomainAsync(token).ConfigureAwait(false);
+            transaction.Freeze();
+            await transaction.PrepareDomainAsync(token).ConfigureAwait(false);
+            EnsureCandidateStage(await transaction.InitializeAsync(token).ConfigureAwait(false));
             token.ThrowIfCancellationRequested();
-            if (baseline.ManagedServices is not null)
-                services = baseline.ManagedServices.Runtime.PrepareTransition(baseline.ManagedServices, candidate.ManagedServices!);
-            var affected = removedIds.Concat(services?.AffectedModules ?? Enumerable.Empty<ModuleId>()).ToHashSet();
-            if (preparation is not null)
-            {
-                var domainAffected = InvokeCallback(() => preparation.AffectedModules.ToArray());
-                if (domainAffected.Any(id => !baseline.Composition.ModulesById.ContainsKey(id)))
-                    throw new InvalidOperationException("Domain impact must identify modules in the current composition.");
-                affected.UnionWith(domainAffected);
-            }
-            lock (_stateLock)
-            {
-                if (_shutdownRequested) throw new InvalidOperationException("Host shutdown was requested.");
-                _suspendedModules.UnionWith(affected);
-                suspended = true;
-            }
-            if (preparation is not null)
-                await InvokeCallbackAsync(async () => { await preparation.SuspendAsync(token).ConfigureAwait(false); return true; }).ConfigureAwait(false);
-            var next = new ModuleHostView(this, checked(baseline.Generation + 1), candidate,
-                preparation is null ? baseline.State : InvokeCallback(() => preparation.State));
+            await transaction.SuspendAsync(token).ConfigureAwait(false);
+            var (state, publisher) = transaction.SealState();
+            ModuleHostView next;
             lock (_stateLock)
             {
                 token.ThrowIfCancellationRequested();
                 if (_shutdownRequested) throw new InvalidOperationException("Host shutdown was requested.");
                 if (!ReferenceEquals(Current, baseline)) throw new InvalidOperationException("The composition baseline is stale.");
-                foreach (var entry in removed) entry.Closing = true;
+                next = transaction.Publish(state, publisher);
                 Volatile.Write(ref _current, next);
-                _suspendedModules.Clear();
-                suspended = false;
             }
-            var retirement = StartTrackedCleanup(receipt => RetirePreviousAsync(removed, baseline.Services, services, preparation, receipt),
-                new RetirementResources(removed, services, preparation));
+            transaction.MarkRetiring();
+            var retirement = StartTrackedCleanup(transaction.PreviousRetirementPlan());
             return new ModuleChangeResult(ModuleChangeStatus.Committed, next, retirement: retirement);
         }
         catch (Exception exception)
@@ -213,11 +173,11 @@ public sealed partial class ModuleHost
             // Only proven recovery may reopen admission. Failed recovery remains
             // isolated under this coordinator until global shutdown takes over.
             var recovered = true;
-            if (suspended)
+            if (transaction.Suspended)
             {
                 try
                 {
-                    if (preparation is not null)
+                    if (transaction.Preparation is { } preparation)
                         await InvokeCallbackAsync(async () => { await preparation.ResumeAsync().ConfigureAwait(false); return true; }).ConfigureAwait(false);
                 }
                 catch (Exception resume)
@@ -225,13 +185,13 @@ public sealed partial class ModuleHost
                     recovered = false;
                     var failure = FailureDiagnostic(resume, "ResumeModules");
                     diagnostics.Add(failure);
-                    lock (_stateLock) _recoveryFailure = new RecoveryFailure(services, [failure]);
+                    lock (_stateLock) _recoveryFailure = new RecoveryFailure(transaction.Services, [failure]);
                 }
                 if (recovered) lock (_stateLock) _suspendedModules.Clear();
             }
-            if (recovered) services?.Dispose();
-            var cleanup = StartTrackedCleanup(receipt => AbortCandidateAsync(created, candidate, preparation, receipt),
-                new RetirementResources(created.ToArray(), candidate.ManagedServices, preparation));
+            if (recovered) transaction.Services?.Dispose();
+            transaction.MarkAborted();
+            var cleanup = StartTrackedCleanup(transaction.AbortPlan());
             var canceled = exception is OperationCanceledException && token.IsCancellationRequested;
             return new ModuleChangeResult(canceled ? ModuleChangeStatus.Canceled : ModuleChangeStatus.Rejected,
                 baseline, diagnostics, cleanup);

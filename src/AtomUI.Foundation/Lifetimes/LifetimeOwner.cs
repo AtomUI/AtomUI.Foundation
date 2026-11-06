@@ -22,8 +22,8 @@ public abstract class LifetimeOwner
     internal bool BlockedByFailure;
     internal Exception? Failure;
     internal readonly List<LifetimeFailure> Failures = [];
-    internal LifetimeRetirement? Retirement;
-    internal readonly List<LifetimeRetirement> Retirements = [];
+    internal LifetimeRetirementBatch? Retirement;
+    internal readonly List<LifetimeRetirementBatch> Retirements = [];
     internal readonly List<LifetimeCapture> Captures = [];
     internal readonly List<LifetimeCapture> Consumers = [];
     internal readonly HashSet<LifetimeOwner> Prerequisites = [];

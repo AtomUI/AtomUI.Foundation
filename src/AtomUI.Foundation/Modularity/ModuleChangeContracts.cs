@@ -59,17 +59,25 @@ public sealed class ModuleChangeResult
     public ModuleChangeRetirement Retirement { get; }
 }
 
+/// <summary>Resources a retirement keeps reachable until it proves they exited.</summary>
+internal sealed record ModuleRetirementResources(
+    IReadOnlyList<ModuleEntry> Modules,
+    ModuleServiceTransition? Transition,
+    ModuleServiceBindings? CandidateBindings,
+    LifetimeRetirement? ManagedRetirement,
+    ModuleChangePreparation? Domain);
+
 public sealed class ModuleChangeRetirement
 {
-    private object? _retainedResources;
+    private ModuleRetirementResources? _retainedResources;
     private LifetimeRetirement? _managedRetirement;
-    internal ModuleChangeRetirement(Task<ModuleHostResult> completion, object? retainedResources = null)
+    internal ModuleChangeRetirement(Task<ModuleHostResult> completion, ModuleRetirementResources? retainedResources = null)
     {
         FinalCompletion = completion;
         _retainedResources = retainedResources;
     }
     internal void ForgetReleasedResources() => _retainedResources = null;
-    internal void RetainResources(object resources) => _retainedResources = resources;
+    internal void RetainResources(ModuleRetirementResources resources) => _retainedResources = resources;
     public Task<ModuleHostResult> FinalCompletion { get; }
     public LifetimeRetirement? ManagedRetirement
     {
@@ -108,4 +116,18 @@ public abstract class ModuleChangePreparation
     public virtual ValueTask AbortAsync() => ValueTask.CompletedTask;
     public virtual void StopPrevious() { }
     public virtual ValueTask<ModuleHostResult> CompletePreviousAsync() => ValueTask.FromResult(ModuleHostResult.Success);
+
+    /// <summary>
+    /// Stops the state this preparation published when the host finally shuts down while that state is
+    /// still current. Called once, after the lifetime Stop and before module readers are drained. A state
+    /// superseded by a later change is retired by that change's <see cref="StopPrevious"/> instead.
+    /// </summary>
+    public virtual void StopCurrent() { }
+
+    /// <summary>
+    /// Completes final retirement of the state this preparation published. It runs concurrently with the
+    /// module reader drain, so it may return a <see cref="ModuleHostLease"/> held by that state; managed
+    /// service release still waits for module callbacks.
+    /// </summary>
+    public virtual ValueTask<ModuleHostResult> CompleteCurrentAsync() => ValueTask.FromResult(ModuleHostResult.Success);
 }

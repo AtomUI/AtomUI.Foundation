@@ -65,7 +65,7 @@
 
 默认中立模式只处理模块生命周期，不接管外部服务实例。受管模式还必须：关闭全体准入、分发全部 Stop、接纳真实退出票据、按 owner 就绪条件推进释放，并以最终结果确认关闭；模块 Shutdown 返回不是完整退出证明。具体顺序以[退休协议](managed-lifetimes.md#退休调度与两个屏障)为准。
 
-最终关闭中的当前代领域状态与旧代遵循同一退休协议。Host 保存发布 `ModuleHostView.State` 的参与方准备对象；关闭时先分发全部 Stop，再在模块读者排空之前启动领域完成，使 `StopPrevious` 与 `CompletePreviousAsync` 和模块回调、受管服务 Release 并行推进。持有模块 lease 的领域状态可以在 `CompletePreviousAsync` 中归还 lease，无需手动解除循环。没有参与方的中立消费者行为不变：空领域完成立即成功。Host 不自动 Dispose 任意 State，也不把领域 State 类型化。
+最终关闭中的当前代领域状态与旧代共用同一退休调度器。Host 在视图中保存发布 `ModuleHostView.State` 的准备对象；关闭时先执行 lifetime Stop，再调用该对象的 `StopCurrent()`，随后让 `CompleteCurrentAsync()` 与模块读者排空同时启动，受管服务 Release 仍等待模块回调结束。`StopPrevious` 与 `CompletePreviousAsync` 退休的是准备对象的前任状态，不能用来退休它自己发布的状态；因此当前状态由 `ModuleChangePreparation` 新增的可选成员 `StopCurrent()` 与 `CompleteCurrentAsync()` 退休，默认实现为空操作。持有模块 lease 的领域状态可以在 `CompleteCurrentAsync()` 中归还该 lease，无需手动解除循环。被后续变更取代的状态由那次变更的 `StopPrevious` 退休，关闭时不再对它调用 `StopCurrent`。没有参与方或未覆写这两个成员的消费者行为不变。Host 不自动 Dispose 任意 State，也不把领域 State 类型化。
 
 `ModuleRegistration.For` 的工厂与 Shutdown 是模块生命周期合同。模块额外实现 IDisposable/IAsyncDisposable 不自动增加第二条 Dispose 路径；通用服务的释放权威单独登记。
 

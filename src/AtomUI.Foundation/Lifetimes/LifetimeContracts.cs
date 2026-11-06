@@ -42,32 +42,67 @@ public sealed class LifetimeCloseResult
     public bool IsSuccess => Failures.Count == 0 && Owners.All(owner => owner.State == LifetimeOwnerState.Released);
 }
 
-public sealed class LifetimeRetirement
+/// <summary>
+/// The domain's unit of release progress for one retirement: fixed members, owners still pending a
+/// final state, Stop dispatch state and the two completion sources. Only the domain mutates it;
+/// callers observe it through its public <see cref="LifetimeRetirement"/> ticket.
+/// </summary>
+internal sealed class LifetimeRetirementBatch
 {
-    private readonly Task<LifetimeCloseResult>? _completion;
-    private readonly Task<LifetimeCloseResult>? _finalCompletion;
-
-    internal LifetimeRetirement(IEnumerable<LifetimeOwner> owners)
+    internal LifetimeRetirementBatch(IEnumerable<LifetimeOwner> owners)
     {
         Members = owners.ToArray();
+        Ticket = new LifetimeRetirement(this);
     }
 
     internal LifetimeOwner[] Members { get; private set; }
-    internal LifetimeDomain? BatchDomain;
-    internal List<LifetimeOwner>? BatchNotifications;
-    internal bool BatchDispatchStarted;
-    internal bool BatchNotificationsComplete;
-    internal bool BatchCompleted;
+    internal LifetimeRetirement Ticket { get; }
+
+    /// <summary>Set for an explicitly dispatched batch whose release opens only on completion.</summary>
+    internal LifetimeDomain? Domain;
+    internal List<LifetimeOwner>? Notifications;
+    internal bool DispatchStarted;
+    internal bool NotificationsComplete;
+    internal bool Completed;
     internal readonly HashSet<LifetimeOwner> PendingFinalOwners = [];
     internal readonly TaskCompletionSource<LifetimeCloseResult> Initial = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal readonly TaskCompletionSource<LifetimeCloseResult> Final = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    internal Task<LifetimeCloseResult> Completion => Initial.Task;
+    internal Task<LifetimeCloseResult> FinalCompletion => Final.Task;
+
+    internal bool CompleteFinal(LifetimeCloseResult result)
+    {
+        if (!Final.TrySetResult(result)) return false;
+        Members = [];
+        return true;
+    }
+}
+
+/// <summary>
+/// A public retirement receipt. It either observes exactly one domain batch or aggregates several
+/// receipts; it is never a release authority of its own.
+/// </summary>
+public sealed class LifetimeRetirement
+{
+    private readonly Task<LifetimeCloseResult> _completion;
+    private readonly Task<LifetimeCloseResult> _finalCompletion;
+
+    internal LifetimeRetirement(LifetimeRetirementBatch batch)
+    {
+        Batch = batch;
+        _completion = batch.Completion;
+        _finalCompletion = batch.FinalCompletion;
+    }
+
     private LifetimeRetirement(Task<LifetimeRetirement[]> sources, Action<LifetimeCloseResult>? beforeFinal)
-        : this(Array.Empty<LifetimeOwner>())
     {
         _completion = AggregateAsync(sources, final: false, null);
         _finalCompletion = AggregateAsync(sources, final: true, beforeFinal);
     }
+
+    /// <summary>The observed batch, or null for an aggregate receipt.</summary>
+    internal LifetimeRetirementBatch? Batch { get; }
 
     // The returned tasks own aggregation and final bookkeeping. Domain batches remain the
     // only release authority; callers must connect sources outside lifetime/service locks.
@@ -95,13 +130,6 @@ public sealed class LifetimeRetirement
         return result;
     }
 
-    public Task<LifetimeCloseResult> Completion => _completion ?? Initial.Task;
-    public Task<LifetimeCloseResult> FinalCompletion => _finalCompletion ?? Final.Task;
-
-    internal bool CompleteFinal(LifetimeCloseResult result)
-    {
-        if (!Final.TrySetResult(result)) return false;
-        Members = [];
-        return true;
-    }
+    public Task<LifetimeCloseResult> Completion => _completion;
+    public Task<LifetimeCloseResult> FinalCompletion => _finalCompletion;
 }

@@ -8,7 +8,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
     internal readonly object Gate = new();
     private readonly List<LifetimeScope> _scopes = [];
     private readonly List<LifetimeOwner> _owners = [];
-    private readonly List<LifetimeRetirement> _retirements = [];
+    private readonly List<LifetimeRetirementBatch> _retirements = [];
     private readonly Queue<LifetimeOwner> _progressQueue = [];
     private readonly HashSet<LifetimeOwner> _queuedOwners = [];
     private readonly HashSet<LifetimeOwner> _ownersToPrune = [];
@@ -19,7 +19,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
     private bool _stopped;
     private bool _releaseEnabled;
     private int _notificationBatches;
-    private LifetimeRetirement? _retirement;
+    private LifetimeRetirementBatch? _retirement;
     private bool _progressing;
     private bool _progressRequested;
     private bool _failureClosureDirty;
@@ -27,7 +27,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
 
     internal LifetimeRetirement? CurrentRetirement
     {
-        get { lock (Gate) return _retirement; }
+        get { lock (Gate) return _retirement?.Ticket; }
     }
 
     public LifetimeScope CreateScope()
@@ -258,7 +258,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
                 owner.Suspensions--;
                 owner.RetirementBarriers++;
             }
-            suspension.Retirement = PrepareRetirementUnsafe(suspension.Members, false, out notifications, fixedMembers: true);
+            suspension.Retirement = PrepareRetirementUnsafe(suspension.Members, false, out notifications, fixedMembers: true).Ticket;
         }
         Dispatch(notifications, suspension);
     }
@@ -297,10 +297,10 @@ public sealed class LifetimeDomain : IAsyncDisposable
             var tracked = _owners.ToHashSet();
             var members = _owners.Where(affected.Contains).Concat(requested.Where(owner => !tracked.Contains(owner))).Distinct().ToArray();
             foreach (var owner in members) owner.RetirementBarriers++;
-            var ticket = PrepareRetirementUnsafe(members, false, out var notifications, fixedMembers: true);
-            ticket.BatchDomain = this;
-            ticket.BatchNotifications = notifications;
-            return ticket;
+            var batch = PrepareRetirementUnsafe(members, false, out var notifications, fixedMembers: true);
+            batch.Domain = this;
+            batch.Notifications = notifications;
+            return batch.Ticket;
         }
     }
 
@@ -308,20 +308,21 @@ public sealed class LifetimeDomain : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(retirement);
         List<LifetimeOwner> notifications;
+        var batch = retirement.Batch;
         lock (Gate)
         {
-            if (retirement.BatchDomain != this) throw new InvalidOperationException("The retirement does not belong to this batch domain.");
-            if (retirement.BatchDispatchStarted)
+            if (batch?.Domain != this) throw new InvalidOperationException("The retirement does not belong to this batch domain.");
+            if (batch.DispatchStarted)
             {
-                while (!retirement.BatchNotificationsComplete && _stopCallbackDepth == 0)
+                while (!batch.NotificationsComplete && _stopCallbackDepth == 0)
                     Monitor.Wait(Gate);
                 return;
             }
-            retirement.BatchDispatchStarted = true;
-            notifications = retirement.BatchNotifications!;
-            retirement.BatchNotifications = null;
+            batch.DispatchStarted = true;
+            notifications = batch.Notifications!;
+            batch.Notifications = null;
         }
-        Dispatch(notifications, batch: retirement);
+        Dispatch(notifications, batch: batch);
     }
 
     internal LifetimeRetirement CompleteRetirement(LifetimeRetirement retirement)
@@ -329,10 +330,11 @@ public sealed class LifetimeDomain : IAsyncDisposable
         DispatchRetirement(retirement);
         lock (Gate)
         {
-            if (!retirement.BatchCompleted)
+            var batch = retirement.Batch!;
+            if (!batch.Completed)
             {
-                retirement.BatchCompleted = true;
-                foreach (var owner in retirement.Members)
+                batch.Completed = true;
+                foreach (var owner in batch.Members)
                 {
                     owner.RetirementBarriers--;
                     owner.ReleaseEnabled = true;
@@ -370,7 +372,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
                 owner.ReleaseEnabled = true;
                 QueueProgressUnsafe(owner);
             }
-            retirement = _retirement!;
+            retirement = _retirement!.Ticket;
         }
         Progress();
         return retirement;
@@ -386,31 +388,31 @@ public sealed class LifetimeDomain : IAsyncDisposable
     internal LifetimeRetirement Retire(LifetimeScope scope)
     {
         List<LifetimeOwner> notifications;
-        LifetimeRetirement retirement;
+        LifetimeRetirementBatch retirement;
         lock (Gate)
         {
-            if (scope.Retirement is not null) return scope.Retirement;
+            if (scope.Retirement is not null) return scope.Retirement.Ticket;
             scope.Retiring = true;
             scope.Retirement = retirement = PrepareRetirementUnsafe(scope.Owners, true, out notifications);
         }
         Dispatch(notifications);
-        return retirement;
+        return retirement.Ticket;
     }
 
     internal LifetimeRetirement Retire(LifetimeOwner owner)
     {
         List<LifetimeOwner> notifications;
-        LifetimeRetirement retirement;
+        LifetimeRetirementBatch retirement;
         lock (Gate)
         {
-            if (owner.Retirement is not null) return owner.Retirement;
+            if (owner.Retirement is not null) return owner.Retirement.Ticket;
             owner.Retirement = retirement = PrepareRetirementUnsafe([owner], true, out notifications);
         }
         Dispatch(notifications);
-        return retirement;
+        return retirement.Ticket;
     }
 
-    private LifetimeRetirement PrepareRetirementUnsafe(IEnumerable<LifetimeOwner> owners, bool release,
+    private LifetimeRetirementBatch PrepareRetirementUnsafe(IEnumerable<LifetimeOwner> owners, bool release,
         out List<LifetimeOwner> notifications, bool fixedMembers = false)
     {
         var affected = fixedMembers ? new HashSet<LifetimeOwner>(owners) : ConsumerClosureUnsafe(owners);
@@ -429,7 +431,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
             }
         }
 
-        var retirement = new LifetimeRetirement(members);
+        var retirement = new LifetimeRetirementBatch(members);
         foreach (var owner in members)
         {
             owner.Retirement ??= retirement;
@@ -451,7 +453,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
         return affected;
     }
 
-    private void Dispatch(List<LifetimeOwner> notifications, LifetimeSuspension? suspension = null, LifetimeRetirement? batch = null)
+    private void Dispatch(List<LifetimeOwner> notifications, LifetimeSuspension? suspension = null, LifetimeRetirementBatch? batch = null)
     {
         foreach (var owner in notifications)
         {
@@ -470,7 +472,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
         {
             _notificationBatches--;
             if (suspension is not null) suspension.NotificationsComplete = true;
-            if (batch is not null) batch.BatchNotificationsComplete = true;
+            if (batch is not null) batch.NotificationsComplete = true;
             if (suspension is not null || batch is not null) Monitor.PulseAll(Gate);
         }
         Progress();
@@ -694,9 +696,9 @@ public sealed class LifetimeDomain : IAsyncDisposable
                 CompleteRetirementUnsafe(retirement);
     }
 
-    private void CompleteRetirementUnsafe(LifetimeRetirement retirement)
+    private void CompleteRetirementUnsafe(LifetimeRetirementBatch retirement)
     {
-        if ((retirement.BatchDomain is not null && !retirement.BatchCompleted) ||
+        if ((retirement.Domain is not null && !retirement.Completed) ||
             retirement.PendingFinalOwners.Count != 0 || retirement.FinalCompletion.IsCompleted ||
             !retirement.Completion.IsCompleted) return;
 
@@ -741,7 +743,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
         owner.Failures.Add(new LifetimeFailure(owner.Id, owner.ModuleId, stage, exception));
     }
 
-    private LifetimeCloseResult SnapshotUnsafe(LifetimeRetirement retirement)
+    private LifetimeCloseResult SnapshotUnsafe(LifetimeRetirementBatch retirement)
     {
         var ids = retirement.Members.Select(owner => owner.Id).ToHashSet();
         // Only the domain's final close owns historical failures outside its live members.
