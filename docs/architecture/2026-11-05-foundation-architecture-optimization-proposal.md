@@ -152,6 +152,14 @@ P1 已于 2026-11-05 在工作区完成（未提交）：
 - `LifetimeRetirement` 拆为内部 `LifetimeRetirementBatch` 与公开回执，公开签名不变。
 - 验证：Release 双目标构建 0 警告；运行时非红色用例 206 个连续 6 轮通过，新增 4 个事务统一与 R01 验收用例；生成器 48 个通过；红色集合与 P1 前一致。真实消费者的生成器四种配置、net8/net10 JIT 与 net10 trim 通过；Native AOT 在还原阶段被 NuGet 漏洞审计拦截（`Microsoft.DotNet.ILCompiler` 10.0.8，GHSA-p3jp-9v83-76w9），需更新本机 SDK 后补跑，未取得本轮 AOT 证据。
 
+P2 已于 2026-11-05 在工作区完成（未提交）：
+
+- O16：服务层对已准入工厂的依赖解析不再复查自身 scope 的关闭状态；生命周期层允许正在构造的 owner 捕获仍为 Active 的依赖。在正在退休的 scope 内新建依赖仍被拒绝。O16 红色用例与并发骨架转绿，并发骨架 20 轮重复无失败。
+- W2：Transient 由内部请求 owner 承载，首次使用归还后、无捕获与 release dependent 时由推进器自动退休。Singleton 捕获 Transient 产生 Info 诊断 `ATOMUISVC004`，已登记到 `PublicAPI.Unshipped.txt`。O02 红色用例转绿。
+- W3：新增内部 `ModuleServiceRetirementLedger`，取代运行时的 `LiveScopes`、`CandidateRetirements`、`ShutdownRetirement` 字段、绑定集的 scope 列表与 `ScopeRegistration` 类。实施中发现若以绑定集对象为键，存活 scope 会经 ledger 根住历史绑定视图，既有保留用例拦下了这一点，已改为按绑定集身份对象分组。
+- 既有保留用例中三个用反射读取内部计数的辅助方法改读 ledger，断言未改。
+- 验证：Release 双目标构建 0 警告；运行时非红色用例 217 个连续 10 轮通过，新增 5 个 Transient 验收用例；生成器 48 个通过；剩余红色用例为 O05、O07、O09。真实消费者的生成器四种配置、net8/net10 JIT 与 net10 trim 通过；Native AOT 仍被同一 NuGet 安全审计拦截。原 LuminEditor 1000 轮场景不在本仓库，未重跑。
+
 ## 7. 验收矩阵
 
 | 场景 | 核心断言 |

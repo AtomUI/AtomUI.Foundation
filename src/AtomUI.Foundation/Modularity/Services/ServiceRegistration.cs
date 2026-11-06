@@ -34,7 +34,7 @@ internal sealed class ServiceRegistration<T>(ModuleId owner, ModuleServiceLifeti
         var releaseState = new ReleaseState(runtime.Gate, scope.State, this, release);
         try
         {
-            return scope.Owners.Create<T>(Owner, current =>
+            Func<LifetimeOwner<T>, T> construct = current =>
             {
                 lock (runtime.Gate)
                 {
@@ -54,7 +54,11 @@ internal sealed class ServiceRegistration<T>(ModuleId owner, ModuleServiceLifeti
                 {
                     context.Close();
                 }
-            }, releaseState.ReleaseAsync, stop);
+            };
+            // A Transient instance belongs to the request that activated it, not to the scope's lifetime.
+            return Lifetime == ModuleServiceLifetime.Transient
+                ? scope.Owners.CreateRequest(Owner, construct, releaseState.ReleaseAsync, stop)
+                : scope.Owners.Create(Owner, construct, releaseState.ReleaseAsync, stop);
         }
         finally
         {

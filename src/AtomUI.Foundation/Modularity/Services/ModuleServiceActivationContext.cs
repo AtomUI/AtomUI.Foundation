@@ -23,7 +23,9 @@ public sealed class ModuleServiceActivationContext
             throw new InvalidOperationException("Service factory contexts are confined to their synchronous factory thread.");
         if (!_dependencies.TryGetValue(typeof(T), out var registration))
             throw new InvalidOperationException($"Factory dependency '{typeof(T).FullName}' was not declared.");
-        return _capture.Capture(_scope.ResolveOwner<T>(registration));
+        // The factory was admitted before its scope could start retiring; resolving its declared
+        // dependencies continues that admission rather than requesting new work from the scope.
+        return _capture.Capture(_scope.ResolveOwner<T>(registration, admitted: true));
     }
 
     internal void Close() => Interlocked.Exchange(ref _closed, 1);

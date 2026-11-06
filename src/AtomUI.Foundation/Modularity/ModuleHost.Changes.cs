@@ -148,7 +148,7 @@ public sealed partial class ModuleHost
             EnsureCandidateStage(await transaction.ConfigureAsync("PostConfigureServices", ModuleHostPhase.PostConfiguredServices,
                 static (module, context, cancellation) => module.PostConfigureServicesAsync(context, cancellation), token).ConfigureAwait(false));
             await transaction.ConfigureDomainAsync(token).ConfigureAwait(false);
-            transaction.Freeze();
+            var freezeNotes = transaction.Freeze();
             await transaction.PrepareDomainAsync(token).ConfigureAwait(false);
             EnsureCandidateStage(await transaction.InitializeAsync(token).ConfigureAwait(false));
             token.ThrowIfCancellationRequested();
@@ -165,7 +165,8 @@ public sealed partial class ModuleHost
             }
             transaction.MarkRetiring();
             var retirement = StartTrackedCleanup(transaction.PreviousRetirementPlan());
-            return new ModuleChangeResult(ModuleChangeStatus.Committed, next, retirement: retirement);
+            return new ModuleChangeResult(ModuleChangeStatus.Committed, next,
+                freezeNotes.Count == 0 ? null : CreateResult(freezeNotes).Diagnostics, retirement);
         }
         catch (Exception exception)
         {

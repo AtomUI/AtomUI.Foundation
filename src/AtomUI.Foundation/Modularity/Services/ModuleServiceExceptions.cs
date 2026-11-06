@@ -5,6 +5,7 @@ public static class ModuleServiceDiagnosticCodes
     public const string RequiredDependencyMissing = "ATOMUISVC001";
     public const string DependencyCycle = "ATOMUISVC002";
     public const string SingletonCapturesScoped = "ATOMUISVC003";
+    public const string SingletonCapturesTransient = "ATOMUISVC004";
     public const string CleanupFailed = "ATOMUISVC005";
     public const string OwnerRetainedAfterCleanupFailure = "ATOMUISVC006";
 }

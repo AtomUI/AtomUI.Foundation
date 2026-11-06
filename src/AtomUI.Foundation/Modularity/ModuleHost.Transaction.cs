@@ -97,8 +97,8 @@ public sealed partial class ModuleHost
             }).ConfigureAwait(false);
         }
 
-        /// <summary>Freezes neutral and managed registrations of this candidate only.</summary>
-        internal void Freeze()
+        /// <summary>Freezes neutral and managed registrations of this candidate only; returns informational notes.</summary>
+        internal IReadOnlyList<ModuleDiagnostic> Freeze()
         {
             if (IsInitial)
             {
@@ -112,6 +112,7 @@ public sealed partial class ModuleHost
             Candidate.Services.Freeze();
             foreach (var entry in Created) entry.Phase = ModuleHostPhase.ServicesFrozen;
             Stage = ModuleChangeStage.Configured;
+            return Candidate.ManagedServices?.FreezeNotes ?? [];
         }
 
         internal async ValueTask PrepareDomainAsync(CancellationToken token)

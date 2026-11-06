@@ -19,7 +19,7 @@
 | 取消 | 原令牌身份、加入者只取消等待、清理不因原 token 取消跳过、空模块集的预取消不推进阶段 |
 | 关闭 | 已尝试模块不重放；重复等待保留原失败；同步上下文风险有对应证据 |
 | 中立服务 | type/instance 二选一、最后登记覆盖、冻结、移除、值类型/委托实例、调用方所有权与导出 |
-| 受管服务 | 每根 Singleton、scope 隔离、Transient 请求 owner 在最后 lease 归还后恰释放一次、被 Singleton 捕获的 Transient 随 Singleton 释放、并发首次激活、静态工厂匹配及失败交接 |
+| 受管服务 | 每根 Singleton、scope 隔离、Transient 请求 owner 在最后 lease 归还后恰释放一次、被 Singleton 捕获的 Transient 随 Singleton 释放并产生 Info 诊断、已准入工厂在 scope 同时退休时仍完成且退休成功、并发首次激活、静态工厂匹配及失败交接 |
 | 借用 | 退休后新借用为零；方法返回后结果 reader 保活；重复归还不多减计数 |
 | 退休关系 | 无 Module Required 边但有真实借用；A.Release 归还 B；长期捕获环拒绝；不在释放前全局等待归零 |
 | 失败保留 | 独立 A/C 仍清理；失败 B 不重试；工厂失败 prerequisite 和失败阻塞后新增的 Capture/WaitForRelease 都扩展 RetainedByFailedOwner 闭包；与真实 Pending 分开 |

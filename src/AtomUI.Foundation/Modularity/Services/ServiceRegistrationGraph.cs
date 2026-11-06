@@ -2,9 +2,11 @@ namespace AtomUI.Modularity.Services;
 
 internal static class ServiceRegistrationGraph
 {
-    internal static void Validate(IReadOnlyDictionary<Type, ServiceRegistration> registrations)
+    /// <summary>Throws for invalid graphs; returns informational notes keyed by the Singleton they concern.</summary>
+    internal static IReadOnlyList<(ServiceRegistration Singleton, ModuleDiagnostic Note)> Validate(IReadOnlyDictionary<Type, ServiceRegistration> registrations)
     {
         var errors = new List<ModuleDiagnostic>();
+        var notes = new List<(ServiceRegistration, ModuleDiagnostic)>();
         foreach (var registration in registrations.Values)
         foreach (var dependency in registration.Dependencies)
             if (!registrations.ContainsKey(dependency))
@@ -21,8 +23,21 @@ internal static class ServiceRegistrationGraph
         {
             visited.Clear();
             Visit(singleton, true);
+            // A captured Transient lives as long as the Singleton that captures it. That is legal, but
+            // it is no longer released per request, so the promotion is reported.
+            foreach (var type in visited)
+                if (registrations[type].Lifetime == ModuleServiceLifetime.Transient)
+                    notes.Add((singleton, new ModuleDiagnostic(ModuleServiceDiagnosticCodes.SingletonCapturesTransient,
+                        $"Singleton service '{singleton.ServiceType.FullName}' captures transient '{type.FullName}', which then lives as long as the singleton.",
+                        singleton.Owner, severity: ModuleDiagnosticSeverity.Info, stage: "FreezeManagedServices",
+                        context: new Dictionary<string, string>
+                        {
+                            ["serviceType"] = singleton.ServiceType.FullName ?? singleton.ServiceType.Name,
+                            ["transientType"] = type.FullName ?? type.Name
+                        })));
         }
         if (errors.Count != 0) throw new ModuleServiceValidationException(errors);
+        return notes;
 
         void Visit(ServiceRegistration current, bool singletonGraph)
         {

@@ -9,9 +9,8 @@ public sealed class ModuleServiceRuntime : IModuleHostReconfigurationLifetime, I
     private Func<ModuleServiceBindings>? _current;
     private ModuleHost? _host;
     internal readonly Dictionary<LifetimeOwner, ModuleServiceScope.ScopeState> ScopeLinks = [];
-    internal readonly HashSet<ModuleServiceScope.ScopeState> LiveScopes = [];
-    internal readonly Dictionary<LifetimeRetirement, LifetimeRetirement> CandidateRetirements = [];
-    internal LifetimeRetirement? ShutdownRetirement;
+    internal readonly ModuleServiceRetirementLedger Retirements;
+    internal LifetimeRetirement? ShutdownRetirement => Retirements.Shutdown;
 
     public LifetimeDomain Lifetimes { get; } = new();
     public ModuleServiceRuntime ServiceRuntime => this;
@@ -19,7 +18,11 @@ public sealed class ModuleServiceRuntime : IModuleHostReconfigurationLifetime, I
     internal ModuleServiceBindings InitialBindings => _initialBindings ?? throw new InvalidOperationException("Managed service registrations are frozen.");
     public ModuleServiceScope Root => Bindings.Root;
 
-    public ModuleServiceRuntime() => _initialBindings = new ModuleServiceBindings(this);
+    public ModuleServiceRuntime()
+    {
+        Retirements = new ModuleServiceRetirementLedger(Gate);
+        _initialBindings = new ModuleServiceBindings(this);
+    }
 
     internal void AttachHost(ModuleHost host, Func<ModuleServiceBindings> current)
     {
@@ -74,10 +77,10 @@ public sealed class ModuleServiceRuntime : IModuleHostReconfigurationLifetime, I
         ModuleServiceScope.ScopeState[] scopes;
         lock (Gate)
         {
-            ShutdownRetirement ??= Lifetimes.CurrentRetirement!;
-            scopes = LiveScopes.ToArray();
+            Retirements.Shutdown ??= Lifetimes.CurrentRetirement!;
+            scopes = Retirements.LiveScopes();
             foreach (var scope in scopes) scope.PrepareRetirement();
-            candidates = CandidateRetirements.ToArray();
+            candidates = Retirements.Candidates();
         }
         foreach (var scope in scopes) scope.StartRetirement();
         foreach (var candidate in candidates)

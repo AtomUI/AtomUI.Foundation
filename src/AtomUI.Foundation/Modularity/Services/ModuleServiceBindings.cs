@@ -13,7 +13,6 @@ public sealed class ModuleServiceBindings
     private bool _retiring;
     private LifetimeRetirement? _retirement;
     private LifetimeRetirement? _retirementBatch;
-    private readonly List<ModuleServiceScope.ScopeState> _ownedScopes = [];
 
     internal ModuleServiceBindings(ModuleServiceRuntime runtime)
     {
@@ -41,6 +40,8 @@ public sealed class ModuleServiceBindings
     public LifetimeRetirement? Retirement { get { lock (Runtime.Gate) return _retirement; } }
     internal IEnumerable<ServiceRegistration> Registrations => _registrations.Values;
     internal bool Frozen => _frozen;
+    /// <summary>Informational diagnostics produced by the last successful Freeze.</summary>
+    internal IReadOnlyList<ModuleDiagnostic> FreezeNotes { get; private set; } = [];
     internal bool IsNew(ServiceRegistration registration) => _candidate && _newRegistrations.Contains(registration);
 
     public void AddSingletonFactory<T>(ModuleId owner, Func<ModuleServiceActivationContext, T> factory,
@@ -58,7 +59,10 @@ public sealed class ModuleServiceBindings
         lock (Runtime.Gate)
         {
             if (_frozen) return;
-            ServiceRegistrationGraph.Validate(_registrations);
+            var notes = ServiceRegistrationGraph.Validate(_registrations);
+            // A candidate reports only what its own new registrations introduce.
+            FreezeNotes = notes.Where(note => !_candidate || _newRegistrations.Contains(note.Singleton))
+                .Select(note => note.Note).ToArray();
             foreach (var registration in _newRegistrations) registration.BindDependencies(_registrations);
             _frozen = true;
         }
@@ -101,11 +105,12 @@ public sealed class ModuleServiceBindings
             while (_retiring && _retirement is null) Monitor.Wait(Runtime.Gate);
             if (_retirement is not null) return _retirementBatch!;
             _retiring = true;
+            // No scope can be created for these bindings once _retiring is set under the same gate.
+            scopes = Runtime.Retirements.ScopesOf(this);
             foreach (var registration in _newRegistrations) registration.Blocks++;
-            foreach (var scope in _ownedScopes) scope.Blocks++;
-            while (_newRegistrations.Any(registration => registration.Pending != 0) || _ownedScopes.Any(scope => scope.Pending != 0))
+            foreach (var scope in scopes) scope.Blocks++;
+            while (_newRegistrations.Any(registration => registration.Pending != 0) || scopes.Any(scope => scope.Pending != 0))
                 Monitor.Wait(Runtime.Gate);
-            scopes = _ownedScopes.ToArray();
             lock (Runtime.Lifetimes.Gate)
                 batch = _retirementBatch = Runtime.ShutdownRetirement ??
                     Runtime.Lifetimes.PrepareRetirement(_newRegistrations.SelectMany(registration => registration.Owners)
@@ -114,10 +119,9 @@ public sealed class ModuleServiceBindings
             source = new(TaskCreationOptions.RunContinuationsAsynchronously);
             _retirement = LifetimeRetirement.Aggregate(source.Task, result =>
             {
-                if (result.IsSuccess)
-                    lock (Runtime.Gate) Runtime.CandidateRetirements.Remove(_retirement!);
+                if (result.IsSuccess) Runtime.Retirements.RemoveCandidate(_retirement!);
             });
-            Runtime.CandidateRetirements.Add(_retirement, batch);
+            Runtime.Retirements.AddCandidate(_retirement, batch);
             Monitor.PulseAll(Runtime.Gate);
         }
         foreach (var scope in scopes) scope.StartRetirement();
@@ -142,9 +146,7 @@ public sealed class ModuleServiceBindings
         {
             if (_retiring) throw new InvalidOperationException("Managed service bindings are retiring.");
             var scope = new ModuleServiceScope(this, Runtime.Lifetimes.CreateScope());
-            scope.State.Registration = new ModuleServiceScope.ScopeRegistration(Runtime.Gate, _ownedScopes, Runtime.LiveScopes, scope.State);
-            _ownedScopes.Add(scope.State);
-            Runtime.LiveScopes.Add(scope.State);
+            Runtime.Retirements.AddScope(scope.State);
             return scope;
         }
     }

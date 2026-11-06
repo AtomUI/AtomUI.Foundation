@@ -14,7 +14,8 @@ public sealed class ModuleServiceScope : IAsyncDisposable
         internal LifetimeScope Owners = owners;
         internal bool IsRoot = isRoot;
         internal object Origin = origin;
-        internal ScopeRegistration? Registration;
+        /// <summary>The runtime ledger indexing this live scope; cleared when its final retirement succeeds.</summary>
+        internal ModuleServiceRetirementLedger? Ledger;
         internal LifetimeRetirement? Retirement;
         private TaskCompletionSource<LifetimeRetirement[]>? _retirementSource;
 
@@ -25,7 +26,7 @@ public sealed class ModuleServiceScope : IAsyncDisposable
             _retirementSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
             return Retirement = LifetimeRetirement.Aggregate(_retirementSource.Task, result =>
             {
-                if (result.IsSuccess) Registration?.Remove();
+                if (result.IsSuccess) Ledger?.RemoveScope(this);
             });
         }
 
@@ -42,26 +43,6 @@ public sealed class ModuleServiceScope : IAsyncDisposable
         }
     }
 
-    internal sealed class ScopeRegistration(object gate, List<ScopeState> scopes, HashSet<ScopeState> liveScopes, ScopeState state)
-    {
-        private List<ScopeState>? _scopes = scopes;
-        private HashSet<ScopeState>? _liveScopes = liveScopes;
-        private ScopeState? _state = state;
-
-        internal void Remove()
-        {
-            lock (gate)
-            {
-                if (_scopes is null) return;
-                _scopes.Remove(_state!);
-                _liveScopes!.Remove(_state!);
-                _state!.Registration = null;
-                _state = null;
-                _scopes = null;
-                _liveScopes = null;
-            }
-        }
-    }
     private readonly ScopeState _state;
     private readonly ModuleServiceBindings _bindings;
     private object _gate => _state.Gate;
@@ -178,14 +159,19 @@ public sealed class ModuleServiceScope : IAsyncDisposable
         return ResolveOwner<T>(_bindings.GetRegistration(typeof(T)));
     }
 
-    internal LifetimeOwner<T> ResolveOwner<T>(ServiceRegistration registration) where T : class
+    /// <param name="admitted">
+    /// True when an admitted factory resolves its declared dependency. Such a lookup does not re-check
+    /// whether this scope has started retiring: existing instances and longer-lived scopes stay
+    /// available to it. Creating a new instance in a retiring scope is still new work and is rejected.
+    /// </param>
+    internal LifetimeOwner<T> ResolveOwner<T>(ServiceRegistration registration, bool admitted = false) where T : class
     {
         lock (Runtime.Gate)
-            if (registration.Blocks != 0 || _state.Blocks != 0) throw new InvalidOperationException("Service admission is suspended.");
+            if (registration.Blocks != 0 || (!admitted && _state.Blocks != 0)) throw new InvalidOperationException("Service admission is suspended.");
         Lazy<LifetimeOwner>? existing;
         lock (_gate)
         {
-            EnsureOpen();
+            if (!admitted) EnsureOpen();
             _instances.TryGetValue(registration, out existing);
         }
         if (existing is not null) return ReadCached<T>(registration, existing);

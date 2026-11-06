@@ -371,16 +371,27 @@ public sealed class ModuleServiceRetirementRetentionTests
         return new WeakReference(ticket);
     }
 
-    private static int OwnedScopeCount(ModuleServiceBindings bindings) =>
-        ((ICollection)typeof(ModuleServiceBindings).GetField("_ownedScopes", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(bindings)!).Count;
+    // White-box counters over the runtime's internal retirement ledger (see ModuleServiceRetirementLedger).
+    private static object Ledger(ModuleServiceRuntime runtime) =>
+        typeof(ModuleServiceRuntime).GetField("Retirements", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(runtime)!;
 
-    private static int CandidateReceiptCount(ModuleServiceRuntime runtime) =>
-        ((ICollection)typeof(ModuleServiceRuntime).GetField("CandidateRetirements", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(runtime)!).Count;
+    private static int OwnedScopeCount(ModuleServiceBindings bindings)
+    {
+        var ledger = Ledger(bindings.Runtime);
+        var scopes = (Array)ledger.GetType().GetMethod("ScopesOf", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(ledger, [bindings])!;
+        return scopes.Length;
+    }
+
+    private static int CandidateReceiptCount(ModuleServiceRuntime runtime)
+    {
+        var ledger = Ledger(runtime);
+        return (int)ledger.GetType().GetProperty("CandidateCount", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(ledger)!;
+    }
 
     private static int LiveScopeCount(ModuleServiceRuntime runtime)
     {
-        var scopes = typeof(ModuleServiceRuntime).GetField("LiveScopes", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(runtime)!;
-        return (int)scopes.GetType().GetProperty("Count")!.GetValue(scopes)!;
+        var ledger = Ledger(runtime);
+        return (int)ledger.GetType().GetProperty("ScopeCount", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(ledger)!;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

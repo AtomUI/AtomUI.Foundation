@@ -77,7 +77,7 @@ Microsoft DI 等容器可继续服务中立描述导出。若作为严格受管�
 
 实现保留现有两个包，在运行时程序集增加 `AtomUI.Modularity.Services`。`ModuleServiceRuntime` 是显式运行时及 `IModuleHostLifetime` 适配器；`ModuleHostOptions.Lifetime` 或 builder 的 `UseLifetime` 选择它，默认值为空。`IModuleHostLifetime` 位于 AtomUI.Modularity，定义 `void Freeze()`、`void Stop()`、`ValueTask<ModuleHostResult> CompleteShutdownAsync()`；Host 在冻结服务时调用 Freeze，关闭模块回调前 Stop，全部回调后完成并等待收尾。
 
-Runtime 提供 `Lifetimes`、`Root`、Freeze、Stop、CompleteShutdownAsync 与 IAsyncDisposable。三个独立登记方法为 `AddSingletonFactory<TService>`、`AddScopedFactory<TService>`、`AddTransientFactory<TService>`，参数固定为来源 ModuleId、`Func<ModuleServiceActivationContext,TService>`、`Func<TService,ValueTask> release`、可选 `Action<TService> stop`、`params Type[] dependencies`，TService 为 class。配置冻结前允许登记，冻结时校验缺失/循环与 Singleton 对 Scoped 的传递捕获。按 2026-11-05 批准的[架构优化方案](2026-11-05-foundation-architecture-optimization-proposal.md)，Singleton 对 Transient 的传递捕获合法但会把该 Transient 的寿命提升到 Singleton，冻结时以 Info 诊断报告，不作为错误。
+Runtime 提供 `Lifetimes`、`Root`、Freeze、Stop、CompleteShutdownAsync 与 IAsyncDisposable。三个独立登记方法为 `AddSingletonFactory<TService>`、`AddScopedFactory<TService>`、`AddTransientFactory<TService>`，参数固定为来源 ModuleId、`Func<ModuleServiceActivationContext,TService>`、`Func<TService,ValueTask> release`、可选 `Action<TService> stop`、`params Type[] dependencies`，TService 为 class。配置冻结前允许登记，冻结时校验缺失/循环与 Singleton 对 Scoped 的传递捕获。按 2026-11-05 批准的[架构优化方案](2026-11-05-foundation-architecture-optimization-proposal.md)，Singleton 对 Transient 的传递捕获合法但会把该 Transient 的寿命提升到 Singleton，冻结时以 Info 诊断 `ATOMUISVC004`（`ModuleServiceDiagnosticCodes.SingletonCapturesTransient`）报告，不作为错误；Host 经诊断观察者报告它，初始冻结结果与提交的变更结果也携带它，候选只报告其新增登记引入的捕获。
 
 `ModuleServiceActivationContext.GetRequiredService<T>()` 只在当前 factory 执行期间使用，且只允许已声明依赖；返回值由当前实例 owner 的真实 capture 保活。`ModuleServiceScope` 提供 `Borrow<T>()`、`TryBorrow<T>(out LifetimeLease<T>? lease)`、`CreateScope()`、`ShareFrom<T>(ModuleServiceScope source)`、`BeginRetirement()` 和 IAsyncDisposable。`TryBorrow` 在准入已暂停、绑定正在退休或 scope 已关闭时返回 false 且不抛出；未登记的服务类型仍抛出。共享接入保留原实例，通过目标 scope 的真实关系持有原 owner，不转移释放权。
 
@@ -101,7 +101,7 @@ scope 公开的 `FinalCompletion` 成功之前，原登记方应已完成对应�
 
 候选退休的内部 batch 负责通知/开放真实 owner 的释放，公开汇总回执负责保存完整结果，两者不能被混成第二个释放权威。成功完成的候选票据从 Runtime 待汇总集合裁剪；失败和 Pending 回执保留到最终关闭，且重复关闭不重试 Release。所有跨层收尾都在状态锁外完成，再发布最终结果，保持 Runtime → Lifetime 的既有锁顺序。
 
-按 2026-11-05 批准方案，Runtime 层对候选、scope 与全局关闭的退休记账合并为一个内部 ledger：按登记身份索引 live、Pending、失败三类票据，成功票据在其最终完成时由 ledger 统一移除，失败与 Pending 票据保留到最终关闭。Bindings、ScopeState 与 Runtime 不再各自持有退休引用，公开 `Retirement`、`ManagedRetirement` 与各 `FinalCompletion` 的形态不变。裁剪策略由 ledger 的分类决定，不逐集合做无合同清空。
+按 2026-11-05 批准方案，Runtime 层对候选、scope 与全局关闭的退休索引合并为一个内部 ledger：索引仍存活的非根 scope、Pending 与失败的候选回执，以及全局关闭 batch。scope 按创建它的绑定集身份对象分组，而不以绑定集本身为键，因此存活的 scope 不会经 ledger 根住一份历史绑定视图及其工厂闭包。成功的最终退休由 ledger 统一移除对应条目，失败与 Pending 条目保留到最终关闭。各对象仍持有自己的公开回执，`Retirement`、`ManagedRetirement` 与各 `FinalCompletion` 的形态不变；ledger 只是待汇总索引，不是第二个释放权威。裁剪策略由 ledger 的分类决定，不逐集合做无合同清空。
 
 在途工厂的排空以可等待方式实现：`Pending` 归零时完成一个等待源，候选退休与 transition 准备不再在构造函数或准备方法内同步阻塞线程。锁层级固定为 Host → Runtime → Lifetimes → scope 状态锁，禁止反向获取。
 

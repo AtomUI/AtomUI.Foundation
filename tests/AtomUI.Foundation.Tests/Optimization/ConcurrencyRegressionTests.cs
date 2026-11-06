@@ -14,11 +14,9 @@ public sealed class ConcurrencyRegressionTests
 {
     private static readonly ModuleId Owner = ModuleId.FromSerializedValue("Tests.Concurrency");
 
-    // Nondeterministically red until O16 is fixed: an admitted Scoped factory whose scope
-    // starts retiring mid-construction reports a spurious Factory failure. The deterministic
-    // reproduction is P0RedBaselineTests.O16_*. Remove this trait together with that fix.
+    // This guard exposed O16 (an admitted factory failing when its scope started retiring);
+    // the deterministic reproduction is P0RedBaselineTests.O16_*.
     [Theory]
-    [Trait("Category", "P0Red")]
     [InlineData(1)]
     [InlineData(7)]
     [InlineData(20261105)]

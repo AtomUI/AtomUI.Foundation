@@ -20,6 +20,9 @@ public abstract class LifetimeOwner
     internal bool Constructing;
     internal bool HandoffCompleted;
     internal bool BlockedByFailure;
+    /// <summary>A request owner retires itself once its first use has returned and nothing still uses it.</summary>
+    internal bool RequestOwner;
+    internal bool RequestUsed;
     internal Exception? Failure;
     internal readonly List<LifetimeFailure> Failures = [];
     internal LifetimeRetirementBatch? Retirement;

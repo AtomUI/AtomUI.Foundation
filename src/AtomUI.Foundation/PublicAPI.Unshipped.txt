@@ -1,3 +1,4 @@
 #nullable enable
 virtual AtomUI.Modularity.ModuleChangePreparation.CompleteCurrentAsync() -> System.Threading.Tasks.ValueTask<AtomUI.Modularity.ModuleHostResult!>
 virtual AtomUI.Modularity.ModuleChangePreparation.StopCurrent() -> void
+const AtomUI.Modularity.Services.ModuleServiceDiagnosticCodes.SingletonCapturesTransient = "ATOMUISVC004" -> string!

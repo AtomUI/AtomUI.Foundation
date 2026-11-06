@@ -69,7 +69,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
     }
 
     internal LifetimeOwner<T> Create<T>(LifetimeScope scope, ModuleId moduleId, Func<LifetimeOwner<T>, T> factory,
-        Func<T, ValueTask> release, Action<T>? stop) where T : class
+        Func<T, ValueTask> release, Action<T>? stop, bool requestOwner = false) where T : class
     {
         ArgumentNullException.ThrowIfNull(factory);
         ArgumentNullException.ThrowIfNull(release);
@@ -79,7 +79,8 @@ public sealed class LifetimeDomain : IAsyncDisposable
             if (_stopped || scope.Retiring) throw new InvalidOperationException("The lifetime scope is retiring.");
             owner = new LifetimeOwner<T>(this, Interlocked.Increment(ref _nextOwnerId), moduleId, null, release, stop)
             {
-                Constructing = true
+                Constructing = true,
+                RequestOwner = requestOwner
             };
             // Publish the reservation before user construction so retirement can always find it.
             scope.Owners.Add(owner);
@@ -135,7 +136,10 @@ public sealed class LifetimeDomain : IAsyncDisposable
         lock (Gate)
         {
             if (dependency.LifetimeDomain != this) throw new InvalidOperationException("Captures require the same lifetime domain.");
-            if (consumer.CurrentState != LifetimeOwnerState.Active || dependency.CurrentState != LifetimeOwnerState.Active ||
+            // A consumer still inside its admitted factory may capture an active dependency even if
+            // its scope started retiring meanwhile; its retirement waits for that construction.
+            if ((consumer.CurrentState != LifetimeOwnerState.Active && !consumer.Constructing) ||
+                dependency.CurrentState != LifetimeOwnerState.Active ||
                 consumer.Suspensions != 0 || dependency.Suspensions != 0 || dependency.Constructing)
                 throw new InvalidOperationException("Retiring owners do not admit new captures.");
             if (ReachesUnsafe(consumer, dependency)) throw new InvalidOperationException("The capture would create a release cycle.");
@@ -143,6 +147,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
             consumer.Captures.Add(capture);
             dependency.Consumers.Add(capture);
             lease = new LifetimeLease<T>(dependency, capture);
+            dependency.RequestUsed = true;
             if (consumer.BlockedByFailure)
             {
                 RetainFailureClosureUnsafe(consumer);
@@ -206,6 +211,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
             if (owner.CurrentState != LifetimeOwnerState.Active || owner.Suspensions != 0 || owner.Constructing)
                 throw new InvalidOperationException("The lifetime owner does not admit new readers.");
             owner.Readers++;
+            owner.RequestUsed = true;
             return new LifetimeLease<T>(owner);
         }
     }
@@ -493,6 +499,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
         while (true)
         {
             List<LifetimeOwner> ready = [];
+            List<LifetimeOwner> idle = [];
             lock (Gate)
             {
                 if (_notificationBatches != 0)
@@ -507,6 +514,11 @@ public sealed class LifetimeDomain : IAsyncDisposable
                 {
                     _queuedOwners.Remove(owner);
                     UpdateRetirementFinalStateUnsafe(owner);
+                    if (IsIdleRequestOwnerUnsafe(owner))
+                    {
+                        idle.Add(owner);
+                        continue;
+                    }
                     if ((_stopped && !_releaseEnabled) || owner.CurrentState != LifetimeOwnerState.Retiring ||
                         !owner.ReleaseEnabled || owner.RetirementBarriers != 0 || owner.Readers != 0 || owner.Constructing || owner.Consumers.Count != 0 ||
                         owner.Prerequisites.Any(prerequisite => prerequisite.CurrentState != LifetimeOwnerState.Released)) continue;
@@ -515,7 +527,7 @@ public sealed class LifetimeDomain : IAsyncDisposable
                 }
 
                 CompleteReadyRetirementsUnsafe();
-                if (ready.Count == 0)
+                if (ready.Count == 0 && idle.Count == 0)
                 {
                     if (_progressRequested)
                     {
@@ -531,6 +543,8 @@ public sealed class LifetimeDomain : IAsyncDisposable
             }
 
             foreach (var owner in ready) _ = ReleaseAsync(owner);
+            // Idle request owners retire like any single owner; their Stop runs outside the lock.
+            foreach (var owner in idle) Retire(owner);
 
             lock (Gate)
             {
@@ -664,6 +678,11 @@ public sealed class LifetimeDomain : IAsyncDisposable
             QueueProgressUnsafe(owner);
         }
     }
+
+    private bool IsIdleRequestOwnerUnsafe(LifetimeOwner owner) =>
+        owner is { RequestOwner: true, RequestUsed: true, CurrentState: LifetimeOwnerState.Active, Readers: 0,
+            Constructing: false, Suspensions: 0, RetirementBarriers: 0, Retirement: null } &&
+        owner.Consumers.Count == 0 && owner.ReleaseDependents.Count == 0 && !_stopped;
 
     internal void QueueProgressUnsafe(LifetimeOwner owner)
     {

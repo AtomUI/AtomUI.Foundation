@@ -108,8 +108,9 @@ public sealed partial class ModuleHost
     {
         var required = RequirePhase(ModuleHostPhase.PostConfiguredServices, "FreezeServices");
         if (!required.IsSuccess) { return required; }
-        _initial!.Freeze();
-        return CompletePhase("FreezeServices", ModuleHostPhase.ServicesFrozen);
+        var notes = _initial!.Freeze();
+        var completed = CompletePhase("FreezeServices", ModuleHostPhase.ServicesFrozen);
+        return completed.IsSuccess && notes.Count != 0 ? CreateResult(notes) : completed;
     }
 
     private async ValueTask<ModuleHostResult> InitializeModulesCoreAsync(CancellationToken cancellationToken)
