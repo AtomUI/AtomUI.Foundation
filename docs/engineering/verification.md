@@ -19,14 +19,20 @@
 | 取消 | 原令牌身份、加入者只取消等待、清理不因原 token 取消跳过、空模块集的预取消不推进阶段 |
 | 关闭 | 已尝试模块不重放；重复等待保留原失败；同步上下文风险有对应证据 |
 | 中立服务 | type/instance 二选一、最后登记覆盖、冻结、移除、值类型/委托实例、调用方所有权与导出 |
-| 受管服务 | 每根 Singleton、scope 隔离、Transient 归属、并发首次激活、静态工厂匹配及失败交接 |
+| 受管服务 | 每根 Singleton、scope 隔离、Transient 请求 owner 在最后 lease 归还后恰释放一次、被 Singleton 捕获的 Transient 随 Singleton 释放、并发首次激活、静态工厂匹配及失败交接 |
 | 借用 | 退休后新借用为零；方法返回后结果 reader 保活；重复归还不多减计数 |
 | 退休关系 | 无 Module Required 边但有真实借用；A.Release 归还 B；长期捕获环拒绝；不在释放前全局等待归零 |
 | 失败保留 | 独立 A/C 仍清理；失败 B 不重试；工厂失败 prerequisite 和失败阻塞后新增的 Capture/WaitForRelease 都扩展 RetainedByFailedOwner 闭包；与真实 Pending 分开 |
 | scope 共享 | 两消费者 factory=1；关闭其一不退休原 owner；根 scope 拒绝关联更短寿命子 scope；最后合法退出后 Release=1 |
-| 诊断 | 接收器抛错不遮盖原错误；来源/路径/阶段完整；目标 Warning/Info 成功语义 |
+| 诊断 | 接收器抛错不遮盖原错误；来源/路径/阶段完整；目标 Warning/Info 成功语义；变更拒绝保留候选阶段的结构化诊断 |
+| 事务统一 | 启动即空组合到 S 的变更，提交结果 Generation 为 1；手动阶段 API 与一次性 Initialize 得到相同实例与工厂次数；关闭即 S 到空组合的变更，当前代 State 收到 StopPrevious/CompletePrevious，持有模块 lease 的领域状态在 Complete 中归还后关闭完成 |
+| 并发压力 | 固定种子随机交错 Borrow/Dispose/CreateScope 与 BeginRetirement、ChangeAsync 与 AcquireView；每个 owner 恰释放一次，无 lease 在 Released 后可读，FinalCompletion 不伪报成功 |
+| 推进复杂度 | 以原 LuminEditor 场景标定的 owner 规模为基准，单次 lease 归还耗时不随 owner 总数线性增长；无同步 `Monitor.Wait`；Stop 回调跨 await 后再调用 Stop 被识别为重入 |
+| 簿记 ledger | 成功候选退休后 ledger 为空；失败与 Pending 票据保留到最终关闭；重复关闭不重试 Release |
 
 生命周期并发测试使用可控制的 barrier 固定交错，不靠增加 sleep 或超时碰运气。非合作 reader 未退出时必须保持资源有效，取消等待不改变真实收尾；最终失败报告不得把保留资源标为 Released。
+
+2026-11-04 审计修复增加固定回归：原 4000 个成功 scope 及跨绑定包装退休不累积；真实 lease 和失败回执继续保留；失败 scope 的原异常仍被候选汇总；局部/整体退休并发不死锁且 Release 一次；异步 Release 完成前后明确验证索引收尾顺序。失败闭包在合法 capture 归还后收缩，已满足的 WaitForRelease 双向关系和成功候选票据不累积；单项失败不保留已成功关闭的独立模块载荷。
 
 ## 动态重配事务验收
 
@@ -49,6 +55,8 @@
 
 暂停点用 barrier 固定，计数来自真实 module/service factory、Stop、Release 和结果 owner。替换用例还须证明新旧绑定并存时不误命中旧缓存、未受影响 Singleton/Scoped 不被重建，且只有一个实际释放权威。
 
+恢复失败回归必须保留已暂停的真实旧状态：Resume 抛错后受影响 AcquireView/服务准入仍拒绝、独立模块可读、再次变更拒绝且最终关闭可执行。State/AffectedModules getter 及自定义集合枚举中的重入均须立即拒绝，不能启动真实关闭或等待当前事务。
+
 资格按三层取得：先用仅依赖候选 Foundation 包的独立消费者，再运行 LuminEditor Core 联合消费者，最后对相同创建、请求、变更与关闭分支取得适用 JIT、trim 和 Native AOT 运行证据。Core 消费者包括独立 ProbeFeature 包、稳定 Infrastructure、闭合 Provider、真实 CompositionSingleton/ModelScoped 服务及共享 Model 的双 View，并验证领域拒绝、单一提交和文档身份保持。禁止源码链接、InternalsVisibleTo 或另建 Host 绕过公开边界。
 
 记录候选包版本与内容哈希、消费者源码提交、依赖和完整调用、生成指纹、命令/TFM/RID/机器、构造/停止/释放计数、代次及实例身份、旧租约状态、退出码与日志。详细证据保存到一个权威批次记录，状态表仅链接；publish-only、局部静态 AOT 冒烟和本机结果均不能扩写成其他路径或平台资格。无反射执行路径与 JIT 消费者关闭默认反射 JSON 的要求也须按真实调用验证。
@@ -57,7 +65,11 @@
 
 覆盖单个/多个 partial、其他 partial 特性、别名、可访问嵌套类、泛型外层、file-local、required、无模块输入、命名遮蔽和精确错误位置。每个合法场景检查更新后编译，无效场景检查有针对性的诊断及无错误工厂输出。
 
-真实 SDK/包测试验证 analyzer 装载、CompilerVisibleProperty 桥接、实际 editorconfig 和生成命名；ProjectReference 与 PackageReference 均需覆盖。双程序集组合必须实际创建外部依赖注册并运行 Host，不能只检查生成字符串包含外部类型。
+增加依赖 null 数组、null 元素及数组类型目标；增加仅 extern alias 外部引用以及 alias/global 同全名不同程序集对照。后者除检查输入/输出编译外，还应检查生成 Required 的实际绑定程序集与原属性一致。
+
+增加增量缓存用例：修改不含模块声明的文件后，目录输出步骤状态为 Cached；extern alias、嵌套类型、关键字转义输出不变。显示名推断不再剥除产品前缀的行为变化有对应用例。
+
+真实 SDK/包测试验证 analyzer 装载、CompilerVisibleProperty 桥接、实际 editorconfig 和生成命名；ProjectReference 与 PackageReference 均需覆盖，并包含运行时所支持的每个 SDK 大版本至少一条 analyzer 装载用例。双程序集组合必须实际创建外部依赖注册并运行 Host，不能只检查生成字符串包含外部类型。
 
 ## 独立消费者与兼容
 
@@ -80,6 +92,8 @@ LuminEditor 的 Foundation-owned 命令分支是独立门禁。Core-owned 结果
 未启用受管 Runtime 时不额外创建 provider、owner 或退休状态。已绑定热路径不遍历 Host/Module 图，不按字符串重新发现服务；配置与退休时才处理关系图。性能测试记录实际操作数、分配与测量边界，不能把初始化开销藏入测量或用空工作证明成本。
 
 打包消费使用隔离的 NuGet 缓存或其他可证明不命中旧同版本包的方式，记录包/二进制身份；不因此创建研发 checkout 或新分支。普通 PR 验证与发布流程分开，源代码变化须触发适用验证，发布仍需要明确发布操作。
+
+发布门禁：发布工作流在打包前运行消费者验证脚本，并要求目标 SHA 的验证工作流已成功；PublicAPI 基线无未声明变更，AOT/trim 分析器 0 警告；包资产清单含 Generator `buildTransitive` 属性桥。
 
 ## 本地命令与变更范围
 

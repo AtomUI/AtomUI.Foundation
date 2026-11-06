@@ -14,6 +14,7 @@
 | scope | 拥有/工作分组及显式关联边界；不自动构成父子 DI provider |
 | 参与方 | 登记 Stop 与真实退出证据的模块/领域协调方 |
 | 退休票据 | 同一次退休的首次快照、依赖与最终结果；不是立即完成的停止通知 |
+| 请求 owner | Transient 实例的 owner；最后一个 lease 归还、无 outgoing capture 且无 release dependent 时自动进入 Retiring，按既有屏障释放；被其他 owner 长期捕获时转为被捕获寿命 |
 
 ModuleId 标识来源模块，不代替实例 owner 身份。同一模块可以拥有多个 scope 和实例。owner 身份不能复用于仍被旧 lease 引用的新对象；多个服务别名指向原 owner，重复接管同一实例拒绝。
 
@@ -44,6 +45,10 @@ ModuleId 标识来源模块，不代替实例 owner 身份。同一模块可以�
 
 每个 owner 的最终 Release 最多尝试一次。没有本设计之外的显式恢复合同，不自动重试清理；成功项不能因兄弟项失败或调用方再次关闭而重新执行。
 
+失败保留是从真实清理失败根沿当前有效 capture 和释放顺序关系推导的闭包，不是永久粘在无关 owner 上的历史标记。仍为 Active 的合法消费者归还 capture 后，删除的关系不再授权保留该依赖；应重新维护派生闭包并推进不再受阻的独立 owner。Release 正在执行或已经失败的消费者归还 capture 时，仍须等待实际成功结果后才解除其 pin，不能借闭包收缩提前释放失败对象可能使用的依赖。
+
+`WaitForRelease` 前置 owner 成功 Released 后，该前置条件已满足，应从双向运行关系中解除。成功退出的 owner 不因长期存活的其他 owner 而累计保留；失败及未满足的前置关系继续保留。不可变退休快照保存快照时的事实，不要求运行图永久保存已满足的历史关系。
+
 ## 退休调度与两个屏障
 
 ```mermaid
@@ -70,6 +75,10 @@ flowchart TD
 
 第二屏障为最终结果汇总。Foundation 的关闭成功需要所有相关模块回调、参与方票据和受管 owner 都实际成功结束；单个 Shutdown 返回仅完成第一阶段的一部分。
 
+按 2026-11-05 批准的[架构优化方案](2026-11-05-foundation-architecture-optimization-proposal.md)，退休的内部 batch 与公开回执分离：内部 batch 持有成员、待终态 owner 与 Stop 分发状态，是域内唯一释放推进单位；公开 `LifetimeRetirement` 只暴露 `Completion`、`FinalCompletion` 与聚合，指向一个或多个 batch。可恢复暂停是 batch 的前置阶段，Stop 后与 batch 共用同一记录。公开签名不变。
+
+重入检测在 Host、Runtime 与 Lifetimes 三层统一使用异步上下文（AsyncLocal）承载的回调帧，Stop 回调跨 await 后仍被识别为回调内；不再使用线程静态计数。推进器按索引推进：待完成退休集与 owner 到退休的反向索引、scope 的 owner 集合、失败闭包的脏根子图重算，单次 lease 归还的开销不随域内 owner 总数线性增长。
+
 ## 失败保留与最终结果
 
 各 ready owner 的 Release 独立捕获异常，继续其他独立且可释放的 owner。异常记录包含 owner 身份、来源模块、阶段和真实异常；成功项与失败项分别保存。
@@ -89,6 +98,12 @@ A.Release 失败且仍保留 B 时，A 及受管依赖闭包保持可达，B 标
 
 若 Domain 已先完成关闭，尚未单独退休的 scope 复用该 Domain 的最终结果，以免 owner 记录清理后把既有清理失败报告成成功。
 
+scope 的内部存活索引、真实 owner 列表及退休回执承担不同责任。成功最终退休应解除内部 scope 索引；失败最终退休仍保存原始失败/保留快照，即使底层 owner 列表已压缩，也不能把上层候选汇总改成成功。Pending、真实 lease、取消等待都不是成功退休。清理索引属于原公开退休回执完成前必须完成的内部收尾，不能依赖未等待的后台观察器、GC 或任意延迟。
+
+Domain 同样不能因局部 owner 压缩而抹去自身最终关闭应汇总的真实失败。交接前工厂失败、或 Stop 失败但 Release 成功后，可以回收 owner 和 scope 对象；保存的是原 owner ID、异常与状态的不可变事实，而不是重新保留物理实例。最终 Domain 结果按身份汇总这些事实与当前 owner 的最新状态，局部独立退休不混入其他 scope 的历史失败。已观察过局部错误不等于授权全局关闭将其改报成功，且不触发任何重试。
+
+成功票据在不再承担真实退出责任后应从内部待汇总集合裁剪；失败票据和在途票据继续由原权威保存。上述内部记账不得在 lifetime 状态锁内进入 service/host 锁或执行用户回调，也不应让共享根状态永久指回初始绑定视图。
+
 预算与隔离计费由消费端原账本负责。Foundation 必须保留可供该账本关联的实际 owner 状态，不能因关闭报告完成就假定资源额度可归还。根 runtime/provider 也不能在 finally 中绕过失败保留闭包执行强制 Dispose。
 
 ## scope 关联与外部所有者
@@ -104,6 +119,8 @@ scope 归属、关闭影响和服务解析共享是分开的关系。显式关�
 显式 Runtime 将上述协议接入唯一 ModuleHost。模块 Shutdown 桥可以只提交退休票据；Host 必须在最终关闭中推进和等待真实票据，不能在模块回调后直接释放 scope/provider。
 
 受管实例不能同时由 Foundation owner 和外部 DI 自动释放。外部容器只有在证明构造、保活、逐 owner 清理及失败保留均符合本设计时才取得严格接入资格；标准 scope Dispose 的异常聚合包装不构成这种证明。
+
+实例到 owner 的重复接管检查以 `LifetimeDomain` 为边界：同一实例在一个 domain 内只能有一个 owner；两个独立 domain 可分别接管同一实例，跨 domain 唯一性由消费端共用一个 Runtime 保证。owner 编号同样为 domain 内唯一。这是把此前的进程级保证换成实例级保证，消除全局锁争用，并使已释放裸实例不再延长整个 domain 的可达性。
 
 受管 owner 退休和注册撤销不等于完整模块集合热更新。候选隔离、联合提交及未受影响实例保持身份由 1.0.3 [模块动态重配事务](module-reconfiguration.md)定义，不能通过重建整个 Host 冒充。
 
@@ -123,7 +140,7 @@ scope 归属、关闭影响和服务解析共享是分开的关系。显式关�
 
 ## 必须验证的性质
 
-结果 reader 保活、借用/关闭并发、A.Release 归还 B、失败依赖闭包、双 scope 共享、非合作读者和重复关闭均使用确定性 barrier 验证。完整矩阵及真实消费端要求见[验证合同](../engineering/verification.md)。只测计数器或仅有 Core-owned 替身不足以取得 Foundation-owned 服务资格。
+结果 reader 保活、借用/关闭并发、A.Release 归还 B、失败依赖闭包、双 scope 共享、非合作读者和重复关闭均使用确定性 barrier 验证。此外必须验证：Transient 在最后 lease 归还后恰释放一次且并发借用无重复释放；固定种子的随机交错压力下每个 owner 恰释放一次、无 lease 在 Released 后可读、`FinalCompletion` 不伪报成功；推进复杂度基准证明单次归还开销不随 owner 总数增长。完整矩阵及真实消费端要求见[验证合同](../engineering/verification.md)。只测计数器或仅有 Core-owned 替身不足以取得 Foundation-owned 服务资格。
 
 ## 运行时 API 合同
 

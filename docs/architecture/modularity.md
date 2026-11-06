@@ -30,6 +30,8 @@
 
 保留 `ModuleHostPhase` 既有成员和数值。已完成阶段与正在执行的操作分开表达；实现可用内部协调器和 ledger，不以互相独立的 `_isInitialized` / `_isShutdown` 判定终态。
 
+按 2026-11-05 批准的[架构优化方案](2026-11-05-foundation-architecture-optimization-proposal.md)，Host 只有一种组合变更协议：初始启动是从空组合到 S 的变更，最终关闭是从 S 到空组合的变更，运行中重配是 S 到 S′ 的变更。三者共用候选准备、单一提交、退休调度与失败隔离，由[动态重配分册](module-reconfiguration.md)定义的显式事务状态机驱动。本节的逐阶段可观察值、手动阶段 API 和幂等 Initialize 保持不变：手动 Resolve/Create/配置入口映射为同一事务的分步推进，不重跑工厂；首次 Initialize 的提交结果即 Generation 1 的当前视图，不再有 Generation 0 到 1 的特判。初始集合失败时退休的是尚未发布的候选，与候选失败清理共用一条路径。
+
 | 调用情形 | 目标行为 |
 | --- | --- |
 | 第一次 Initialize | 从当前合法已完成阶段继续，不重建已创建模块 |
@@ -63,11 +65,17 @@
 
 默认中立模式只处理模块生命周期，不接管外部服务实例。受管模式还必须：关闭全体准入、分发全部 Stop、接纳真实退出票据、按 owner 就绪条件推进释放，并以最终结果确认关闭；模块 Shutdown 返回不是完整退出证明。具体顺序以[退休协议](managed-lifetimes.md#退休调度与两个屏障)为准。
 
+最终关闭中的当前代领域状态与旧代遵循同一退休协议。Host 保存发布 `ModuleHostView.State` 的参与方准备对象；关闭时先分发全部 Stop，再在模块读者排空之前启动领域完成，使 `StopPrevious` 与 `CompletePreviousAsync` 和模块回调、受管服务 Release 并行推进。持有模块 lease 的领域状态可以在 `CompletePreviousAsync` 中归还 lease，无需手动解除循环。没有参与方的中立消费者行为不变：空领域完成立即成功。Host 不自动 Dispose 任意 State，也不把领域 State 类型化。
+
 `ModuleRegistration.For` 的工厂与 Shutdown 是模块生命周期合同。模块额外实现 IDisposable/IAsyncDisposable 不自动增加第二条 Dispose 路径；通用服务的释放权威单独登记。
 
 ## 同步入口与诊断
 
-同步 `CreateModules` 保持兼容入口，但其失败回滚可能同步等待异步关闭，不能作为 UI 上下文安全的依据。新接线应优先使用当前提供的 `CreateModulesAsync(CancellationToken)`；保留旧签名时必须明确其同步上下文限制，并按验证合同测试，不能通过阻塞 UI 获得异步关闭资格。
+同步 `CreateModules` 保持兼容入口，但其失败回滚可能同步等待异步关闭，不能作为 UI 上下文安全的依据。新接线应优先使用当前提供的 `CreateModulesAsync(CancellationToken)`；保留旧签名时必须明确其同步上下文限制，并按验证合同测试，不能通过阻塞 UI 获得异步关闭资格。`CreateModules()` 标记 `[Obsolete]` 并指向 `CreateModulesAsync`；`ResolveModules()` 与 `FreezeServices()` 保留，其失败路径同样可能同步等待回滚。
+
+重配窗口内的视图获取是常规状态而非异常。新增 `TryAcquireView(IEnumerable<ModuleId>? modules, out ModuleHostLease? lease)`：Host 未运行、模块正在关闭或准入已暂停时返回 false 且不抛出；现有 `AcquireView` 抛异常入口保留。参数非法（未启用的模块）仍抛 `ArgumentException`。
+
+事务内部以携带结构化诊断的异常传递失败，`ModuleChangeResult.Diagnostics` 直接转发候选阶段的原诊断列表，保留模块 id、诊断码与阶段，不把诊断拼接成字符串后再包装。变更拒绝码 `ATOMUICHANGE001` 进入 `ModuleDiagnosticCodes`；历史编号缺口以注释说明，不复用。
 
 诊断接收器是观察者，其异常不得遮盖原始模块错误或打断回滚。原始错误及接收器故障分开保存，不将后者递归报告给同一接收器。Result 成功语义为不含 Error，Warning/Info 不自动使操作失败；1.0.1 仍按诊断数量判断成功，1.0.2 改为按 Error 严重级别判断。
 

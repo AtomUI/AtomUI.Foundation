@@ -2,13 +2,23 @@
 
 `AtomUI.Foundation.Generator` 提供 Roslyn 增量模块目录生成器及诊断。已发布的 1.0.1 支持常规模块；1.0.2 实现本文的符号唯一性、类型形状校验、全局类型引用和实际 MSBuild 配置接入。本文是当前实现应满足的合同，跨程序集组合等未运行场景仍需按验证合同取得证据。
 
+本轮 extern alias、依赖输入规范化、混合数组秩及关键字元数据路径修正在未发布工作区候选实现；新生成器套件 48/48、六种实际配置消费通过，详见[修复证据](../engineering/evidence/architecture-remediation-20261104.json)。这些修正不属于已经发布的 1.0.3。
+
 ## 输入与输出
 
 生成器读取原始源码的 ModuleAttribute、模块类型和 Dependencies。输出当前程序集内部的 `ModuleGeneratedCatalog`，以 CreateRegistrations 返回显式 ModuleRegistration、ModuleDescriptor、Required 引用和直接构造工厂。
 
 类型身份和展示名称分开保存；内部匹配依据符号身份，不用展示字符串冒充全局唯一符号。输出中的模块类型使用全局限定名称并转义关键字，不能受生成目录命名空间中的同名类型遮蔽。
 
+依赖引用还须保留其实际程序集和可用引用路径。仅有 `extern alias` 的外部依赖不得改写成其他程序集的 `global::` 同名类型；生成器应发射对应 alias 声明与限定引用，或在无法无歧义发射时给出明确诊断。生成后可编译不等于符号身份正确，验收必须对照实际绑定程序集。
+
+引用路径区分原始元数据名称与 C# 发射名称：关键字命名空间的元数据查询不能带 C# 的 `@` 转义；闭合泛型参数中的数组必须保留由外到内的秩与嵌套顺序。语义身份验收覆盖可编译但类型不同的混合秩数组，不能只比较类型显示字符串。
+
 同一模块符号只发现一次。partial 的其他带特性声明不能因读取到合并后的 ModuleAttribute 而再次登记。输入顺序变化不改变稳定目录顺序或诊断含义。
+
+按 2026-11-05 批准的[架构优化方案](2026-11-05-foundation-architecture-optimization-proposal.md)，增量管线的模型只包含字符串与原始值并具备值相等，不持有 `ISymbol` 或 `Location` 对象；位置以可比较的文件、行列信息保存。程序集到引用别名的映射由编译级 provider 一次计算后合并，不在每个依赖上遍历全部引用。未涉及模块声明的编辑应使目录输出步骤命中缓存。
+
+显示名推断只做两件事：去掉 `Module` 后缀，按驼峰分词。不剥除任何产品特定前缀；需要其他显示名的模块使用 `DisplayName`。此前对 `DataGrid` 前缀的剥除属于行为变化，在 CHANGELOG 标注。
 
 ## 可生成类型与错误定位
 
@@ -23,7 +33,11 @@
 
 开放泛型依赖使用 `ATOMUIMODGEN011` 在依赖属性处报告，不生成无法编译的 `Required<T>()` 引用。
 
+无法以可用 global/extern alias 路径保持原程序集身份的依赖使用 `ATOMUIMODGEN012`，定位到原依赖属性并停止发射；不通过任取一个同名符号回退。
+
 不支持的输入报告指向原声明/依赖的明确诊断，不输出注定无法编译的工厂。具有参数构造的模块仍可通过手写显式 ModuleRegistration 注册，不要求生成器反射构造。
+
+依赖数组必须先完整规范化再验证：显式 null 数组按没有依赖处理；null 元素、数组/指针等非命名类型以及其他非模块目标都产生原位依赖诊断。不得在转换为 `INamedTypeSymbol` 时静默过滤，也不得因默认 ImmutableArray 的枚举使整个生成器崩溃。
 
 错误检测同时验证输入源码本身、生成器诊断和更新后编译结果，不能用生成器零异常代替生成代码可编译。
 
@@ -60,6 +74,6 @@ ModuleId 和 ModulePhaseId 的 FromSerializedValue 警告依据实际目标方�
 
 ## 编译和打包边界
 
-Generator 保持 netstandard2.0，仅作为 analyzer；运行时不装载其程序集执行服务。当前生成语法面向支持集合表达式等语法的 C# 12 或更高消费者，不能因 analyzer 目标为 netstandard2.0 就声称生成源支持旧 C#。
+Generator 保持 netstandard2.0，仅作为 analyzer；运行时不装载其程序集执行服务。Generator 引用的 Roslyn 版本取能被运行时所支持的全部 SDK 共同加载的最低版本；若某项能力确需更高版本，在本节与 README 写明生成器要求的最低 SDK，并在验证矩阵用对应 SDK 的消费用例证明。当前生成语法面向支持集合表达式等语法的 C# 12 或更高消费者，不能因 analyzer 目标为 netstandard2.0 就声称生成源支持旧 C#。
 
 源生成不自动证明无反射、trim 安全或 Native AOT 可运行。包加载、属性桥接、生成源编译与实际消费程序运行分别取得证据。工程细则见[生成器工程规则](../engineering/source-generator-guidelines.md)。

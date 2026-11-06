@@ -43,6 +43,15 @@ The 1.0.1 generator package does not include the catalog-property bridge. The 1.
 
 The target package contract supplies a shared props/targets bridge for PackageReference and repository ProjectReference usage. Acceptance must inspect the real analyzer config and compile the generated configured catalog; packaging only the analyzer DLL does not prove that settings reach it.
 
+## API Baseline, AOT Annotations And Release Gate
+
+Per the approved [architecture optimization proposal](2026-11-05-foundation-architecture-optimization-proposal.md) (2026-11-05):
+
+- The runtime project enables `IsAotCompatible` and `IsTrimmable` so trim and AOT analyzers run at build time. Consumer-side trim/Native AOT execution remains the acceptance evidence; analyzer silence alone does not qualify a release.
+- The runtime project references `Microsoft.CodeAnalysis.PublicApiAnalyzers`. `PublicAPI.Shipped.txt` is baselined from the last published package; new symbols enter `PublicAPI.Unshipped.txt` and move to Shipped on release. A public API removal fails the build unless a breaking change is explicitly approved.
+- The release workflow runs the consumer verification script before packing and requires the verification workflow to have succeeded for the exact target SHA. The package asset manifest includes the generator `buildTransitive` props bridge.
+- Version status per capability is recorded in `CHANGELOG.md`; the architecture overview links to it instead of carrying per-version columns.
+
 ## Target Consumer Qualification
 
 The 1.0.2 release includes the explicit managed lifetime path while preserving neutral descriptors. New assemblies or a mandatory DI dependency are not implied by the logical layers in [the dependency graph](dependency-graph.md).
